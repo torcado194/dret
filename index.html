@@ -17,7 +17,7 @@
         <title>🇩🇷🇪🇹</title>
         <script src="/code/jquery.min.js"></script>
         <script src='/code/jquery-ui.min.js'></script>
-        <script src='perlin.js'></script>
+        <script src='/code/perlin.js'></script>
         <link rel="stylesheet" type="text/css" href="/reset.css">
         <!--        <link rel="stylesheet" href="/style.css">-->
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -60,7 +60,7 @@
             noise.seed(seed1);
             var large = noise.simplex2(x / 50, y / 50) * 0.92;
             noise.seed(seed2);
-            var small = noise.simplex2(x / 16, y / 16);
+            var small = noise.simplex2(x / 17, y / 17);
             noise.seed(seed3);
             var small2 = noise.simplex2(x / 24, y / 24);
             
