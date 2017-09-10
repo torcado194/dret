@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<!--
+
+.   .                                                   .o8          
+.  o8                                                  "888          
+.o888oo  .o8888o.  oooo d8b  .oooooo.   .oooo.    .ooooo888   .o8888o. 
+. 888   d88'  `88b `888""8P d88'  `"Y8 `P  .88b  d88'  `888  d88'  `88b
+. 888   888    888  888     888         .oP8888  888    888  888    888
+. 888 . 888.  .888  888     888    .oo d8'  888  888.  .888  888.  .888
+. "888"  "888888"  d888b    `Y8bood8P' `Y888""8o `Y8888888P"  "888888"
+
+-->
+<html lang="en">
+
+    <head>
+        <meta charset="utf-8">
+        <title>🇩🇷🇪🇹</title>
+        <script src="/code/jquery.min.js"></script>
+        <script src='/code/jquery-ui.min.js'></script>
+        <script src='perlin.js'></script>
+        <link rel="stylesheet" type="text/css" href="/reset.css">
+        <!--        <link rel="stylesheet" href="/style.css">-->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <link rel="shortcut icon" href="/favicon.ico"/>
+    </head>
+    <body>
+        <canvas id="canvas"></canvas>
+    </body>
+    <script>
+        var canvas,
+            c;
+        
+        var scale = 1,
+            chunkWidth = 100,
+            chunkHeight = 100,
+            chunkC = 10,
+            chunkR = 10,
+            tileWidth = chunkWidth / chunkC,
+            tileHeight = chunkHeight / chunkR,
+            camX = 400,
+            camY = 400,
+            pressed = [],
+            seed1 = 0,
+            seed2 = 0,
+            seed3 = 0,
+            chunks = [];
+        
+        
+        function Tile(chunk,x,y,color,dir){this.chunk = chunk; this.x = x; this.y = y; this.color = color; this.dir = dir};
+
+        function noiseColor(x,y){
+//            var a = 158,
+//                b = 240;
+            var a = 360,
+                b = 0;
+            return "hsl(" + ((a + getNoiseTile(x, y) * (b - a)) % 360) + ", 100%, 75%)";
+        }
+        
+        function getNoiseTile(x,y){
+            noise.seed(seed1);
+            var large = noise.simplex2(x / 50, y / 50) * 0.92;
+            noise.seed(seed2);
+            var small = noise.simplex2(x / 16, y / 16);
+            noise.seed(seed3);
+            var small2 = noise.simplex2(x / 24, y / 24);
+            
+            //var a = small + (((Math.abs(small) ** Math.abs(large)) - small) * 0.5);
+            //console.log(small + " : " + ((small ** large) - small))
+            var a = large + ((Math.abs(small) ** (3 - small2)) * 0.75);
+            
+            return Math.max(0.3, Math.min(1, (a + 1) / 2));
+        }
+
+        function createMap(chunk){
+            var map = [],
+                w = 10,
+                h = 10;
+
+            for(var i = 0; i < w; i++){
+                map[i] = [];
+                for(var j = 0; j < h; j++){
+                    //debugger;
+                    map[i][j] = new Tile(chunk,i,j,noiseColor((chunk.x * chunkC) + i, (chunk.y * chunkR) + j),Math.random() * 5)
+                }   
+            }
+            return map;
+        }
+
+        function Chunk(x,y,color,dir){this.x = x; this.y = y; this.color = color; this.dir = dir; this.map = createMap(this)};
+
+        function step(time){
+            window.requestAnimationFrame(step);
+            
+            if(pressed.includes("ArrowLeft")){
+                camX--;
+            }
+            if(pressed.includes("ArrowRight")){
+                camX++;
+            }
+            if(pressed.includes("ArrowUp")){
+                camY--;
+            }
+            if(pressed.includes("ArrowDown")){
+                camY++;
+            }
+            
+            c.setTransform(1, 0, 0, 1, (canvas.width / 2) - camX, (canvas.height / 2) - camY);
+            
+            for(var a = 0; a < chunks.length; a++){
+                var chunk = chunks[a];
+                var chunkX = chunk.x * chunkWidth * scale;
+                var chunkY = chunk.y * chunkHeight * scale;
+                c.fillStyle = chunk.color;
+                c.fillRect(chunkX, chunkY, chunkWidth * scale, chunkHeight * scale)
+                for(var i = 0; i < chunk.map.length; i++){
+                    for(var j = 0; j < chunk.map.length; j++){
+                        var tile = chunk.map[i][j];
+                        var tileX = chunkX + tile.x * tileWidth * scale;
+                        var tileY = chunkY + tile.y * tileHeight * scale;
+                        c.fillStyle = tile.color;
+                        c.fillRect(tileX, tileY, tileWidth * scale, tileHeight * scale)
+                    }
+                }
+            }
+        }
+        
+        function init(){
+            canvas = document.getElementById("canvas");
+            c = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            seed1 = Math.random();
+            seed2 = Math.random();
+            seed3 = Math.random();
+            noise.seed(seed1);
+            
+            for(var i = 0; i < 64; i++){
+                chunks.push(new Chunk(i % 8, Math.floor(i / 8), "#6dd853", 0));
+            }
+            
+            step();
+        }
+        
+        init();
+        
+        document.addEventListener("keydown", keyDownHandler, false);
+        document.addEventListener("keyup", keyUpHandler, false);
+        
+        function keyDownHandler(e) {
+            if(!pressed.includes(e.key)){
+                pressed.push(e.key);
+            };
+        }
+
+        function keyUpHandler(e) {
+            if(pressed.includes(e.key)){
+                pressed.splice(pressed.indexOf(e.key), 1);
+            };
+        }
+        
+    </script>
+    <style>
+        body {
+            overflow: hidden;
+        }
+    </style>
+</html>
