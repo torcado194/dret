@@ -37,8 +37,8 @@
             chunkR = 10,
             tileWidth = chunkWidth / chunkC,
             tileHeight = chunkHeight / chunkR,
-            camX = 400,
-            camY = 400,
+            camX = 1000,
+            camY = 1000,
             pressed = [],
             seed1 = 0,
             seed2 = 0,
@@ -50,10 +50,6 @@
         function Tile(chunk,x,y,color,dir){this.chunk = chunk; this.x = x; this.y = y; this.color = color; this.dir = dir};
 
         function noiseColor(x,y){
-//            var a = 158,
-//                b = 240;
-            var a = 207,
-                b = 93;
             var colors = [
                 [207, 1, 0.75],
                 [93, 1, 0.75],
@@ -68,12 +64,9 @@
                 ],
                 val = getNoiseTile(x, y)
             
-            //debugger;
             var color = linearGradient(colors, positions, val);
-            //debugger;
             
             return "hsl(" + (color[0]) + ", " + (color[1] * 100) + "%, " + (color[2] * 100) + "%)";
-            //return "hsl(0,0%," + ((a + getNoiseTile(x, y) * (b - a))) + "%)";
         }
         
         function linearGradient(colors, positions, val){
@@ -109,26 +102,7 @@
         }
         
         function getNoiseTile(x,y){
-            
-            
-            /*noise.seed(seed1);
-            var large = noise.simplex2(x / 50, y / 50) * 0.92;
-            noise.seed(seed2);
-            var small = noise.simplex2(x / 17, y / 17);
-            noise.seed(seed3);
-            var small2 = noise.simplex2(x / 24, y / 24);
-            
-            //var a = small + (((Math.abs(small) ** Math.abs(large)) - small) * 0.5);
-            //console.log(small + " : " + ((small ** large) - small))
-            var a = large + ((Math.abs(small) ** (3 - small2)) * 0.75);
-            
-            return Math.max(0.3, Math.min(1, (a + 1) / 2));*/
-            
-            
-//            return ((noise.perlin3(x/8, y/8, Math.sin(x**y)/20) + 1) / 2);
-            //return ((noise.simplex2(x/8, y/8) + 1.5) / 3);
-            //return ((noise.perlin2(x/14, y/14) + 1) / 2);
-            
+
             var a = 0;
             
             //Base landmass shapes
@@ -155,8 +129,6 @@
             var b = (noise.perlin3(x/8, y/8, 1) + 1) / 2;
             
             var islands = ((amp(b, 0.3) * amp(c, 0.7))) * 0.8;
-            //a *= 0.75;
-            //a = (a + (((amp(b, 0.3) * amp(c, 0.7))) - (a)) * 0.0);
             
             //islands applied with screen method
             a = 1 - (1 - a) * (1 - islands);
@@ -166,8 +138,6 @@
             noise.seed(seed4);
             var d = (noise.perlin3(x/15, y/15, 1) + 1) / 2;
             
-            //noise.seed(seed2);
-            //a = (((noise.perlin3(x/20, y/20, 1) + 1) / 2) + 0.20);
             var e = ((1 - a) * 3) - 0.2;
             
             var rivers = amp2(d, 0.46) * 0.9
@@ -175,25 +145,6 @@
             rivers = Math.min(1,Math.max(0,(rivers) * e));
             
             a -= a * rivers;
-            //a = rivers;
-            
-            //a = a2;
-            
-            //a * 0.78;
-            
-            //a = (1.07 / (1 + 50 * (1000 ** (0 - a))) - 0.02);
-            //a = (1.07 / (1 + 10000 * (Math.E ** (0 - 12 * a))) ** (1 / 3) - 0.05);
-            
-            
-            //a = a + ((a-a**3)) * 0.2
-            
-            //if(a > 1) debugger;
-            
-            //noise.seed(667);
-            //a = c;
-            
-            
-            //debugger;
             
             return Math.min(1,Math.max(0,a));
         }
@@ -215,7 +166,7 @@
                 map[i] = [];
                 for(var j = 0; j < h; j++){
                     //debugger;
-                    map[i][j] = new Tile(chunk,i,j,noiseColor((chunk.x * chunkC) + i, (chunk.y * chunkR) + j),Math.random() * 5)
+                    map[i][j] = new Tile(chunk,i,j,noiseColor((chunk.x * chunkC) + i, (chunk.y * chunkR) + j), Math.floor(Math.random() * 5))
                 }   
             }
             return map;
@@ -227,33 +178,70 @@
             window.requestAnimationFrame(step);
             
             if(pressed.includes("ArrowLeft")){
-                camX--;
+                camX-=5;
             }
             if(pressed.includes("ArrowRight")){
-                camX++;
+                camX+=5;
             }
             if(pressed.includes("ArrowUp")){
-                camY--;
+                camY-=5;
             }
             if(pressed.includes("ArrowDown")){
-                camY++;
+                camY+=5;
             }
             
-            c.setTransform(1, 0, 0, 1, (canvas.width / 2) - camX, (canvas.height / 2) - camY);
+            c.setTransform(1, 0, 0, 1, Math.floor((canvas.width / 2) - camX), Math.floor((canvas.height / 2) - camY));
+            
+            //c.fillRect(0, 0, 4 * scale, 4 * scale)
+            
+            //if(pressed.includes("ArrowLeft") || pressed.includes("ArrowRight") || pressed.includes("ArrowUp") || pressed.includes("ArrowDown"))
+            
+            c.fillStyle = "#7FC6FF";
+            c.fillRect(camX - canvas.width / 2, camY - canvas.height / 2,canvas.width,canvas.height);
             
             for(var a = 0; a < chunks.length; a++){
                 var chunk = chunks[a];
                 var chunkX = chunk.x * chunkWidth * scale;
                 var chunkY = chunk.y * chunkHeight * scale;
-                c.fillStyle = chunk.color;
-                c.fillRect(chunkX, chunkY, chunkWidth * scale, chunkHeight * scale)
+                //if(!(chunkX > camX - canvas.width / 2 && chunkX < camX + canvas.width / 2 && chunkY > camY - canvas.height / 2 && chunkY < camY + canvas.height / 2))
+                //    continue;
+                //c.fillStyle = chunk.color;
+                //c.fillRect(chunkX, chunkY, chunkWidth * scale, chunkHeight * scale)
                 for(var i = 0; i < chunk.map.length; i++){
                     for(var j = 0; j < chunk.map.length; j++){
                         var tile = chunk.map[i][j];
                         var tileX = chunkX + tile.x * tileWidth * scale;
                         var tileY = chunkY + tile.y * tileHeight * scale;
+                        //if(tileX > camX - canvas.width / 2 && tileX < camX + canvas.width / 2 && tileY > camY - canvas.height / 2 && tileY < camY + canvas.height / 2){
+                        /*if(tile.dir == 0){*/
+                            c.fillRect(tileX, tileY, tileWidth * scale, tileHeight * scale)
                         c.fillStyle = tile.color;
-                        c.fillRect(tileX, tileY, tileWidth * scale, tileHeight * scale)
+                        /*} else*/ if(tile.dir == 1) {
+                            c.beginPath();
+                            c.moveTo(tileX + tileWidth * scale, tileY);
+                            c.lineTo(tileX + tileWidth * scale, tileY + tileHeight * scale);
+                            c.lineTo(tileX, tileY + tileHeight * scale);
+                            c.fill();
+                        } else if(tile.dir == 2) {
+                            c.beginPath();
+                            c.moveTo(tileX, tileY);
+                            c.lineTo(tileX + tileWidth * scale, tileY + tileHeight * scale);
+                            c.lineTo(tileX, tileY + tileHeight * scale);
+                            c.fill();
+                        } else if(tile.dir == 3) {
+                            c.beginPath();
+                            c.moveTo(tileX, tileY);
+                            c.lineTo(tileX + tileWidth * scale, tileY);
+                            c.lineTo(tileX, tileY + tileHeight * scale);
+                            c.fill();
+                        } else if(tile.dir == 4) {
+                            c.beginPath();
+                            c.moveTo(tileX, tileY);
+                            c.lineTo(tileX + tileWidth * scale, tileY);
+                            c.lineTo(tileX + tileWidth * scale, tileY + tileHeight * scale);
+                            c.fill();
+                        } 
+                        //}
                     }
                 }
             }
@@ -278,8 +266,10 @@
             
             noise.seed(seed1);
             
-            for(var i = 0; i < 64; i++){
-                chunks.push(new Chunk(i % 8, Math.floor(i / 8), "#6dd853", 0));
+            var a = 19;
+            
+            for(var i = 0; i < a**2; i++){
+                chunks.push(new Chunk(i % a, Math.floor(i / a), "#6dd853", 0));
             }
             
             step();
