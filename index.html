@@ -27,44 +27,147 @@
         <canvas id="canvas"></canvas>
     </body>
     <script>
+        
+        //Global vars
         var canvas,
-            c;
+            c,
+            mapCanvas,
+            mc;
         
         var scale = 1,
-            chunkWidth = 100,
-            chunkHeight = 100,
+            chunkBaseWidth = 100,
+            chunkBaseHeight = 100,
+            chunkWidth = chunkBaseWidth * scale,
+            chunkHeight = chunkBaseHeight * scale,
             chunkC = 10,
             chunkR = 10,
-            tileWidth = chunkWidth / chunkC,
-            tileHeight = chunkHeight / chunkR,
+            tileBaseWidth = chunkWidth / chunkC,
+            tileBaseHeight = chunkHeight / chunkR,
+            tileWidth = tileBaseWidth * scale,
+            tileHeight = tileBaseHeight * scale,
             camX = 1000,
             camY = 1000,
+            camXCenter = 1000,
+            camYCenter = 1000,
             pressed = [],
             seed1 = 0,
             seed2 = 0,
             seed3 = 0,
             seed4 = 0,
-            chunks = [];
+            chunks = [],
+            mouseX = 0,
+            mouseY = 0;
         
+        //Object Definitions
+        function Chunk(x,y,color,dir){this.x = x; this.y = y; this.color = color; this.dir = dir; this.map = createMap(this)};
+        function Tile(chunk,x,y,height,color,dir){this.chunk = chunk; this.x = x; this.y = y; this.height = height; this.color = color; this.dir = dir};
         
-        function Tile(chunk,x,y,color,dir){this.chunk = chunk; this.x = x; this.y = y; this.color = color; this.dir = dir};
+        //Behavioral Functions
+        function createMap(chunk){
+            var map = [],
+                w = 10,
+                h = 10;
 
-        function noiseColor(x,y){
+            for(var i = 0; i < w; i++){
+                map[i] = [];
+                for(var j = 0; j < h; j++){
+                    var height = getHeight((chunk.x * chunkC) + i, (chunk.y * chunkR) + j),
+                        color = getHeightColor(height);
+                    map[i][j] = new Tile(chunk,i,j,height,color,Math.floor(Math.random() * 5))
+                }   
+            }
+            return map;
+        }
+        
+        function getHeight(x,y){
+
+            var a = 0;
+
+            //Base landmass shapes
+            noise.seed(seed1);
+            var base = (noise.perlin2(x/28, y/28) + 1) / 2;
+
+            a = amp(base, 0.22) - 0.16;
+
+            noise.seed(seed4);
+            var a2 = Math.max(0, noise.perlin2(x/50, y/50) * 2 - 0.5);
+
+            //a = 1 - (1 - a) * (1 - a2);
+
+
+            //Gen mountains
+            var mountains = (amp(base, 0.1) ** (1.5)) * 1.67;
+
+            a = a + (mountains - a) * 0.2;
+
+            //islands
+            noise.seed(seed2);
+            var c = (noise.perlin2(x/22, y/22) + 1) / 2;
+            noise.seed(seed3);
+            var b = (noise.perlin2(x/8, y/8) + 1) / 2;
+
+            var islands = ((amp(b, 0.3) * amp(c, 0.7))) * 0.8;
+
+            //islands applied with screen method
+            a = 1 - (1 - a) * (1 - islands);
+
+
+            //rivers
+            noise.seed(seed4);
+            var d = (noise.perlin2(x/15, y/15) + 1) / 2;
+
+            var e = ((1 - a) * 3) - 0.2;
+
+            var rivers = amp2(d, 0.46) * 0.9
+
+            rivers = Math.min(1,Math.max(0,(rivers) * e));
+
+            a -= a * rivers;
+
+            return Math.min(1,Math.max(0,a));
+        }
+
+        function amp(x,v){
+            return Math.max(0,(-400) * Math.pow((x-v),4) + 1)
+        }
+
+        function amp2(x,v){
+            return Math.max(0,(-200) * Math.pow((x-v),2) + 1)
+        }
+        
+        
+        function getHeightColor(h){
             var colors = [
-                [207, 1, 0.75],
+                /*[207, 1, 0.75],
                 [93, 1, 0.75],
                 [93, 1, 0.75],
-                [40, 0.95, 0.8]
+                [40, 0.95, 0.8]*/
+//                hsl(207, 72%, 35%)
+                [207, 0.72, 0.38],
+                [171, 0.74, 0.38],
+                [93, 0.50, 0.50],
+                [73, 0.55, 0.55],
+                [64, 0.64, 0.66],
+                [40, 0.5, 0.58]
             ],
                 positions = [
                     0,
+                    0.25,
                     0.5,
-                    0.75,
+                    0.8,
+                    0.9,
                     1
-                ],
-                val = getNoiseTile(x, y)
+                ];
+            /*var colors = [
+                [0, 0, 0],
+                [0, 0, 1]
+            ],
+                positions = [
+                    0,
+                    1
+                ];*/
             
-            var color = linearGradient(colors, positions, val);
+            var color = linearGradient(colors, positions, h);
             
             return "hsl(" + (color[0]) + ", " + (color[1] * 100) + "%, " + (color[2] * 100) + "%)";
         }
@@ -101,82 +204,16 @@
             }
         }
         
-        function getNoiseTile(x,y){
-
-            var a = 0;
-            
-            //Base landmass shapes
-            noise.seed(seed1);
-            var base = (noise.perlin3(x/28, y/28, 1) + 1) / 2;
-            
-            a = amp(base, 0.22) - 0.16;
-            
-            noise.seed(seed4);
-            var a2 = Math.max(0, noise.perlin3(x/50, y/50, 1) * 2 - 0.5);
-            
-            a = 1 - (1 - a) * (1 - a2);
-            
-            
-            //Gen mountains
-            var mountains = (amp(base, 0.1) ** (1.5)) * 1.67;
-            
-            a = a + (mountains - a) * 0.2;
-            
-            //islands
-            noise.seed(seed2);
-            var c = (noise.perlin3(x/22, y/22, 1) + 1) / 2;
-            noise.seed(seed3);
-            var b = (noise.perlin3(x/8, y/8, 1) + 1) / 2;
-            
-            var islands = ((amp(b, 0.3) * amp(c, 0.7))) * 0.8;
-            
-            //islands applied with screen method
-            a = 1 - (1 - a) * (1 - islands);
-            
-            
-            //rivers
-            noise.seed(seed4);
-            var d = (noise.perlin3(x/15, y/15, 1) + 1) / 2;
-            
-            var e = ((1 - a) * 3) - 0.2;
-            
-            var rivers = amp2(d, 0.46) * 0.9
-            
-            rivers = Math.min(1,Math.max(0,(rivers) * e));
-            
-            a -= a * rivers;
-            
-            return Math.min(1,Math.max(0,a));
-        }
         
-        function amp(x,v){
-            return Math.max(0,(-400) * Math.pow((x-v),4) + 1)
-        }
         
-        function amp2(x,v){
-            return Math.max(0,(-200) * Math.pow((x-v),2) + 1)
-        }
-
-        function createMap(chunk){
-            var map = [],
-                w = 10,
-                h = 10;
-
-            for(var i = 0; i < w; i++){
-                map[i] = [];
-                for(var j = 0; j < h; j++){
-                    //debugger;
-                    map[i][j] = new Tile(chunk,i,j,noiseColor((chunk.x * chunkC) + i, (chunk.y * chunkR) + j), Math.floor(Math.random() * 5))
-                }   
-            }
-            return map;
-        }
-
-        function Chunk(x,y,color,dir){this.x = x; this.y = y; this.color = color; this.dir = dir; this.map = createMap(this)};
-
+        //Update
         function step(time){
+            updateCamera();
+            draw();
             window.requestAnimationFrame(step);
-            
+        }
+        
+        function updateCamera(){
             if(pressed.includes("ArrowLeft")){
                 camX-=5;
             }
@@ -189,64 +226,83 @@
             if(pressed.includes("ArrowDown")){
                 camY+=5;
             }
+            camXCenter = camX + canvas.width / 2;
+            camYCenter = camY + canvas.height / 2;
+        }
+        
+        function draw(){
+            c.setTransform(1, 0, 0, 1, -Math.floor(camX), -Math.floor(camY));
+            c.drawImage(mapCanvas, 0, 0);
             
-            c.setTransform(1, 0, 0, 1, Math.floor((canvas.width / 2) - camX), Math.floor((canvas.height / 2) - camY));
+            c.strokeStyle = "hsl(328, 100%, 67%)";
+            c.strokeRect(Math.floor((mouseX + camX)/(chunkWidth)) * chunkWidth, Math.floor((mouseY + camY)/(chunkHeight)) * chunkHeight, chunkWidth, chunkHeight);
+            c.strokeRect(Math.floor((mouseX + camX)/(tileWidth)) * tileWidth, Math.floor((mouseY + camY)/(tileHeight)) * tileHeight, tileWidth, tileHeight);
             
-            //c.fillRect(0, 0, 4 * scale, 4 * scale)
-            
+            /*if((mouseX + camXCenter) >= tileX && (mouseX + camXCenter) <= tileX + tileWidth && (mouseY + camYCenter) >= tileY && (mouseY + camYCenter) <= tileY + tileHeight){
+                mc.strokeStyle = "hsl(328, 100%, 67%)";
+                mc.strokeRect(tileX, tileY, tileWidth, tileHeight);
+            }*/
+        }
+        
+        function drawMap(){
+            mc.setTransform(1, 0, 0, 1, Math.floor((canvas.width / 2) - camX), Math.floor((canvas.height / 2) - camY));
+
+            //mc.fillRect(0, 0, 4 * scale, 4 * scale)
+
             //if(pressed.includes("ArrowLeft") || pressed.includes("ArrowRight") || pressed.includes("ArrowUp") || pressed.includes("ArrowDown"))
-            
-            c.fillStyle = "#7FC6FF";
-            c.fillRect(camX - canvas.width / 2, camY - canvas.height / 2,canvas.width,canvas.height);
-            
+
+            mc.fillStyle = "#7FC6FF";
+            mc.fillRect(camXCenter, camYCenter,canvas.width,canvas.height);
+
             for(var a = 0; a < chunks.length; a++){
                 var chunk = chunks[a];
-                var chunkX = chunk.x * chunkWidth * scale;
-                var chunkY = chunk.y * chunkHeight * scale;
-                //if(!(chunkX > camX - canvas.width / 2 && chunkX < camX + canvas.width / 2 && chunkY > camY - canvas.height / 2 && chunkY < camY + canvas.height / 2))
+                var chunkX = chunk.x * chunkWidth;
+                var chunkY = chunk.y * chunkHeight;
+                //if(!(chunkX > camXCenter && chunkX < camX + canvas.width / 2 && chunkY > camYCenter && chunkY < camY + canvas.height / 2))
                 //    continue;
-                //c.fillStyle = chunk.color;
-                //c.fillRect(chunkX, chunkY, chunkWidth * scale, chunkHeight * scale)
+                //mc.fillStyle = chunk.color;
+                //mc.fillRect(chunkX, chunkY, chunkWidth, chunkHeight)
                 for(var i = 0; i < chunk.map.length; i++){
-                    for(var j = 0; j < chunk.map.length; j++){
+                    for(var j = 0; j < chunk.map[0].length; j++){
                         var tile = chunk.map[i][j];
-                        var tileX = chunkX + tile.x * tileWidth * scale;
-                        var tileY = chunkY + tile.y * tileHeight * scale;
-                        //if(tileX > camX - canvas.width / 2 && tileX < camX + canvas.width / 2 && tileY > camY - canvas.height / 2 && tileY < camY + canvas.height / 2){
-                        /*if(tile.dir == 0){*/
-                            c.fillRect(tileX, tileY, tileWidth * scale, tileHeight * scale)
-                        c.fillStyle = tile.color;
-                        /*} else*/ if(tile.dir == 1) {
-                            c.beginPath();
-                            c.moveTo(tileX + tileWidth * scale, tileY);
-                            c.lineTo(tileX + tileWidth * scale, tileY + tileHeight * scale);
-                            c.lineTo(tileX, tileY + tileHeight * scale);
-                            c.fill();
+                        var tileX = chunkX + tile.x * tileWidth;
+                        var tileY = chunkY + tile.y * tileHeight;
+                        //if(tileX > camXCenter && tileX < camX + canvas.width / 2 && tileY > camYCenter && tileY < camY + canvas.height / 2){
+                        mc.fillStyle = tile.color;
+                        mc.fillRect(tileX, tileY, tileWidth, tileHeight)
+                        /*if(tile.dir == 0){
+                        } else if(tile.dir == 1) {
+                            mc.beginPath();
+                            mc.moveTo(tileX + tileWidth, tileY);
+                            mc.lineTo(tileX + tileWidth, tileY + tileHeight);
+                            mc.lineTo(tileX, tileY + tileHeight);
+                            mc.fill();
                         } else if(tile.dir == 2) {
-                            c.beginPath();
-                            c.moveTo(tileX, tileY);
-                            c.lineTo(tileX + tileWidth * scale, tileY + tileHeight * scale);
-                            c.lineTo(tileX, tileY + tileHeight * scale);
-                            c.fill();
+                            mc.beginPath();
+                            mc.moveTo(tileX, tileY);
+                            mc.lineTo(tileX + tileWidth, tileY + tileHeight);
+                            mc.lineTo(tileX, tileY + tileHeight);
+                            mc.fill();
                         } else if(tile.dir == 3) {
-                            c.beginPath();
-                            c.moveTo(tileX, tileY);
-                            c.lineTo(tileX + tileWidth * scale, tileY);
-                            c.lineTo(tileX, tileY + tileHeight * scale);
-                            c.fill();
+                            mc.beginPath();
+                            mc.moveTo(tileX, tileY);
+                            mc.lineTo(tileX + tileWidth, tileY);
+                            mc.lineTo(tileX, tileY + tileHeight);
+                            mc.fill();
                         } else if(tile.dir == 4) {
-                            c.beginPath();
-                            c.moveTo(tileX, tileY);
-                            c.lineTo(tileX + tileWidth * scale, tileY);
-                            c.lineTo(tileX + tileWidth * scale, tileY + tileHeight * scale);
-                            c.fill();
-                        } 
+                            mc.beginPath();
+                            mc.moveTo(tileX, tileY);
+                            mc.lineTo(tileX + tileWidth, tileY);
+                            mc.lineTo(tileX + tileWidth, tileY + tileHeight);
+                            mc.fill();
+                        } */
                         //}
                     }
                 }
             }
         }
         
+        //Initialization
         function init(){
             canvas = document.getElementById("canvas");
             c = canvas.getContext('2d');
@@ -272,21 +328,35 @@
                 chunks.push(new Chunk(i % a, Math.floor(i / a), "#6dd853", 0));
             }
             
+            mapCanvas = document.createElement('canvas');
+            mapCanvas.width = a*chunkWidth;
+            mapCanvas.height = a*chunkHeight;
+            mc = mapCanvas.getContext('2d');
+            drawMap();
+            
             step();
         }
         
         init();
         
-        document.addEventListener("keydown", keyDownHandler, false);
-        document.addEventListener("keyup", keyUpHandler, false);
         
-        function keyDownHandler(e) {
+        //Event handlers
+        document.addEventListener("mousemove", mouseMove, false);
+        document.addEventListener("keydown", keyDown, false);
+        document.addEventListener("keyup", keyUp, false);
+        
+        function mouseMove(e) {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        }
+        
+        function keyDown(e) {
             if(!pressed.includes(e.key)){
                 pressed.push(e.key);
             };
         }
 
-        function keyUpHandler(e) {
+        function keyUp(e) {
             if(pressed.includes(e.key)){
                 pressed.splice(pressed.indexOf(e.key), 1);
             };
