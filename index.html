@@ -133,25 +133,77 @@
 
             var a = 0;
 
-            noise.seed(seed1);
-            var base = (noise.perlin2(x/30, y/30) + 1) / 2;
+            /*noise.seed(seed1);
+            var base = (noise.perlin2(x/40, y/40) + 1) / 2;
             
             noise.seed(seed2);
-            var base2 = (noise.perlin2(x/40, y/40) + 1) / 2;
+            var base2 = (noise.perlin2(x/52, y/52) + 1) / 2;
             
             noise.seed(seed4);
-            a = (base * base2 + (noise.simplex2(x/40, y/40) + 1) / 2) / 2;
+            a = (Math.min(1, base + 0.0) * Math.min(1, base2 + 0.0));
+            
+            //a = Math.min(1, base2 + 0.2);
             
             noise.seed(seed3);
-            var edge = (noise.perlin2(x/5, y/5) + 1) / 2;
+            var edge = (noise.perlin2(x/6, y/6) + 1) / 2;
             
             noise.seed(seed4);
-            edge = (edge + (noise.perlin2(x/3, y/3) + 1) / 2) / 2
+            edge = (edge + (noise.perlin2(x/4, y/4) + 1) / 2) / 2
+            
+            a *= 1.6;
+            a **= 1.8;
+            
+            a = edge;*/
+            
+            x *= 1.5;
+            y *= 1.5;
+            
+            var base;
+            noise.seed(seed2);
+            var base1 = (noise.perlin2(x/12, y/12) + 1) / 2;
+            a = base1;
+            for(var i = 0; i < 8; i++){
+                noise.seed(seed1 + i ** 2);
+                base = (noise.perlin2(x/(60), y/(60)) + 1) / 2;
+                a = (a * (base + 0.2));
+            }
+            a *= 1.6;
+            a **= 1.8;
+            
+            a **= 0.3;
+            
+            a /= base1 * 2;
+            
+            a = amp3(a, 0.9);
+            
+            //a = (a + (a ** 50)) / 2;
+            
+            a = a ** (0.8) * 0.8
+            
+            //a = ((a ** 20) + (2.2 * (a ** 0.6))) / 3.2;
+            
+            noise.seed(seed3);
+            var mountains = (noise.perlin2(x/8, y/8) + 1) / 2;
+            
+            for(var i = 0; i < 5; i++){
+                noise.seed(seed3 + i ** 4);
+                base = (noise.perlin2(x/(8), y/(8)) + 1) / 2;
+                mountains = (mountains * (base + 0.2));
+            }
+            
+            mountains *= a * 2.4;
+            
+            a += mountains;
+            
+            a = ((-1) / (2 ** (2 * a)) + 1) * 1.1;
+            
+            
+            //a = mountains;
+            
+            
+            //a = 1 - (1 - a) ** 4;
             
             //a = (a + (1 - (1 - edge) * (1 - a))) / 2;
-            
-            a *= 1.5;
-            a **= 1.8;
             
             //a = a + (Math.min(1,a + 0.0) * edge) / 1;
             
@@ -172,6 +224,10 @@
 
         function amp2(x,v){
             return Math.max(0,(-200) * Math.pow((x-v),2) + 1)
+        }
+        
+        function amp3(x,v){
+            return Math.max(0,(-10) * Math.pow((x-v),6) + 1)
         }
         
         
@@ -361,15 +417,15 @@
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             
-            /*seed1 = Math.random();
-            seed2 = Math.random();
-            seed3 = Math.random();
-            seed4 = Math.random();*/
+            seed1 = Math.floor(Math.random() * 1200 + 300);
+            seed2 = Math.floor(Math.random() * 1200 + 300);
+            seed3 = Math.floor(Math.random() * 1200 + 300);
+            seed4 = Math.floor(Math.random() * 1200 + 300);
             
-            seed1 = 667;
+            /*seed1 = 667;
             seed2 = 668;
             seed3 = 669;
-            seed4 = 666;
+            seed4 = 666;*/
             
             
             noise.seed(seed1);
