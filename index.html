@@ -45,10 +45,10 @@
             tileBaseHeight = chunkHeight / chunkR,
             tileWidth = tileBaseWidth * scale,
             tileHeight = tileBaseHeight * scale,
-            camX = 1000,
-            camY = 1000,
-            camXCenter = 1000,
-            camYCenter = 1000,
+            camX = 0,
+            camY = 0,
+            camXCenter = 0,
+            camYCenter = 0,
             pressed = [],
             seed1 = 0,
             seed2 = 0,
@@ -245,7 +245,7 @@
         }
         
         function drawMap(){
-            mc.setTransform(1, 0, 0, 1, Math.floor((canvas.width / 2) - camX), Math.floor((canvas.height / 2) - camY));
+            //mc.setTransform(1, 0, 0, 1, Math.floor((canvas.width / 2) - camX), Math.floor((canvas.height / 2) - camY));
 
             //mc.fillRect(0, 0, 4 * scale, 4 * scale)
 
