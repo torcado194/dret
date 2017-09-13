@@ -133,40 +133,24 @@
 
             var a = 0;
 
-            /*noise.seed(seed1);
-            var base = (noise.perlin2(x/40, y/40) + 1) / 2;
+            x *= 1;
+            y *= 1;
+            [x,y] = rotate(x,y,6.324);
             
-            noise.seed(seed2);
-            var base2 = (noise.perlin2(x/52, y/52) + 1) / 2;
-            
-            noise.seed(seed4);
-            a = (Math.min(1, base + 0.0) * Math.min(1, base2 + 0.0));
-            
-            //a = Math.min(1, base2 + 0.2);
-            
-            noise.seed(seed3);
-            var edge = (noise.perlin2(x/6, y/6) + 1) / 2;
-            
-            noise.seed(seed4);
-            edge = (edge + (noise.perlin2(x/4, y/4) + 1) / 2) / 2
-            
-            a *= 1.6;
-            a **= 1.8;
-            
-            a = edge;*/
-            
-            x *= 1.5;
-            y *= 1.5;
-            
+            //Large base landmasses. iterations reduce frequency. beginning scale affects jaggedness
             var base;
             noise.seed(seed2);
+            //[x,y] = rotate(x,y,26.5);
             var base1 = (noise.perlin2(x/12, y/12) + 1) / 2;
             a = base1;
             for(var i = 0; i < 8; i++){
                 noise.seed(seed1 + i ** 2);
+                //[x,y] = rotate(x,y,i ** 7.823 + 12.14);
                 base = (noise.perlin2(x/(60), y/(60)) + 1) / 2;
                 a = (a * (base + 0.2));
             }
+            
+            //Buncha tweaking shit idk
             a *= 1.6;
             a **= 1.8;
             
@@ -176,44 +160,34 @@
             
             a = amp3(a, 0.9);
             
-            //a = (a + (a ** 50)) / 2;
-            
             a = a ** (0.8) * 0.8
             
-            //a = ((a ** 20) + (2.2 * (a ** 0.6))) / 3.2;
+            //More jagged edges
+            a = a - (amp3(a, 0.36) * ((noise.perlin2(x/(4), y/(4)) + 1) / 2) * 0.2);
+            //a = (a + ((noise.perlin2(x/(4), y/(4)) + 1) / 2)) / 2;
             
+            //a = (a * ((noise.perlin2(x/5, y/5) + 1) / 2 + 0.2)) / 1;
+            
+            
+            //Mountains. 
             noise.seed(seed3);
+            //[x,y] = rotate(x,y,4.325);
             var mountains = (noise.perlin2(x/8, y/8) + 1) / 2;
             
             for(var i = 0; i < 5; i++){
                 noise.seed(seed3 + i ** 4);
+                //[x,y] = rotate(x,y,i ** 2.276 + 1.53);
                 base = (noise.perlin2(x/(8), y/(8)) + 1) / 2;
                 mountains = (mountains * (base + 0.2));
             }
             
-            mountains *= a * 2.4;
+            //Clip mountans within landmasses
+            mountains *= a * 2.44;
             
             a += mountains;
             
+            //Normalize
             a = ((-1) / (2 ** (2 * a)) + 1) * 1.1;
-            
-            
-            //a = mountains;
-            
-            
-            //a = 1 - (1 - a) ** 4;
-            
-            //a = (a + (1 - (1 - edge) * (1 - a))) / 2;
-            
-            //a = a + (Math.min(1,a + 0.0) * edge) / 1;
-            
-            //a = a + ((amp(a, 0.32) ** 3) * edge) * 0.5;
-            
-            //a = ((amp(a, 0.34) ** 3) * edge + 0.5);
-            
-            //a = edge;
-            
-            //if(a < 0.5) a = 0;
             
             return Math.min(1,Math.max(0,a));
         }
@@ -230,14 +204,18 @@
             return Math.max(0,(-10) * Math.pow((x-v),6) + 1)
         }
         
+        function rotate(x,y,a){
+            var i = x - 90000,
+                j = y - 90000;
+            return [
+                Math.cos(a) * (x - i) - Math.sin(a) * (y - j) + i,
+                Math.sin(a) * (x - i) - Math.cos(a) * (y - j) + j
+                   ]
+        }
+        
         
         function getHeightColor(h){
             var colors = [
-                /*[207, 1, 0.75],
-                [93, 1, 0.75],
-                [93, 1, 0.75],
-                [40, 0.95, 0.8]*/
-//                hsl(207, 72%, 35%)
                 [207, 0.72, 0.38],
                 [171, 0.74, 0.38],
                 [93, 0.50, 0.50],
@@ -299,6 +277,20 @@
             }
         }
         
+        function getTileAt(x,y){
+            var chunkX = Math.floor(x / chunkC),
+                chunkY = Math.floor(y / chunkR),
+                tileX = (x % chunkC),
+                tileY = (y % chunkR);
+            return chunks[chunkY][chunkX].map[tileY][tileX];
+        }
+        
+        function floodFill(x,y){
+            var tolerance = 0.6,
+                tiles = [];
+            
+        }
+        
         
         
         //Update
@@ -337,10 +329,11 @@
                 mc.strokeStyle = "hsl(328, 100%, 67%)";
                 mc.strokeRect(tileX, tileY, tileWidth, tileHeight);
             }*/
-            for(var a = 0; a < chunks.length; a++){
+            
+            /*for(var a = 0; a < chunks.length; a++){
                 var chunk = chunks[a];
-                /*var chunkX = chunk.x * chunkWidth;
-                var chunkY = chunk.y * chunkHeight;*/
+                var chunkX = chunk.x * chunkWidth;
+                var chunkY = chunk.y * chunkHeight;
                 for(var i = 0; i < chunk.map.length; i++){
                     for(var j = 0; j < chunk.map[0].length; j++){
                         var tile = chunk.map[i][j];
@@ -349,7 +342,7 @@
                         }
                     }
                 }
-            }
+            }*/
         }
         
         function drawMap(){
@@ -363,48 +356,50 @@
             mc.fillRect(camXCenter, camYCenter,canvas.width,canvas.height);
 
             for(var a = 0; a < chunks.length; a++){
-                var chunk = chunks[a];
-                var chunkX = chunk.x * chunkWidth;
-                var chunkY = chunk.y * chunkHeight;
-                //if(!(chunkX > camXCenter && chunkX < camX + canvas.width / 2 && chunkY > camYCenter && chunkY < camY + canvas.height / 2))
-                //    continue;
-                //mc.fillStyle = chunk.color;
-                //mc.fillRect(chunkX, chunkY, chunkWidth, chunkHeight)
-                for(var i = 0; i < chunk.map.length; i++){
-                    for(var j = 0; j < chunk.map[0].length; j++){
-                        var tile = chunk.map[i][j];
-                        var tileX = chunkX + tile.x * tileWidth;
-                        var tileY = chunkY + tile.y * tileHeight;
-                        //if(tileX > camXCenter && tileX < camX + canvas.width / 2 && tileY > camYCenter && tileY < camY + canvas.height / 2){
-                        mc.fillStyle = tile.color;
-                        mc.fillRect(tileX, tileY, tileWidth, tileHeight)
-                        /*if(tile.dir == 0){
-                        } else if(tile.dir == 1) {
-                            mc.beginPath();
-                            mc.moveTo(tileX + tileWidth, tileY);
-                            mc.lineTo(tileX + tileWidth, tileY + tileHeight);
-                            mc.lineTo(tileX, tileY + tileHeight);
-                            mc.fill();
-                        } else if(tile.dir == 2) {
-                            mc.beginPath();
-                            mc.moveTo(tileX, tileY);
-                            mc.lineTo(tileX + tileWidth, tileY + tileHeight);
-                            mc.lineTo(tileX, tileY + tileHeight);
-                            mc.fill();
-                        } else if(tile.dir == 3) {
-                            mc.beginPath();
-                            mc.moveTo(tileX, tileY);
-                            mc.lineTo(tileX + tileWidth, tileY);
-                            mc.lineTo(tileX, tileY + tileHeight);
-                            mc.fill();
-                        } else if(tile.dir == 4) {
-                            mc.beginPath();
-                            mc.moveTo(tileX, tileY);
-                            mc.lineTo(tileX + tileWidth, tileY);
-                            mc.lineTo(tileX + tileWidth, tileY + tileHeight);
-                            mc.fill();
-                        } */
-                        //}
+                for(var b = 0; b < chunks[0].length; b++){
+                    var chunk = chunks[a][b];
+                    var chunkX = chunk.x * chunkWidth;
+                    var chunkY = chunk.y * chunkHeight;
+                    //if(!(chunkX > camXCenter && chunkX < camX + canvas.width / 2 && chunkY > camYCenter && chunkY < camY + canvas.height / 2))
+                    //    continue;
+                    //mc.fillStyle = chunk.color;
+                    //mc.fillRect(chunkX, chunkY, chunkWidth, chunkHeight)
+                    for(var i = 0; i < chunk.map.length; i++){
+                        for(var j = 0; j < chunk.map[0].length; j++){
+                            var tile = chunk.map[i][j];
+                            var tileX = chunkX + tile.x * tileWidth;
+                            var tileY = chunkY + tile.y * tileHeight;
+                            //if(tileX > camXCenter && tileX < camX + canvas.width / 2 && tileY > camYCenter && tileY < camY + canvas.height / 2){
+                            mc.fillStyle = tile.color;
+                            mc.fillRect(tileX, tileY, tileWidth, tileHeight)
+                            /*if(tile.dir == 0){
+                            } else if(tile.dir == 1) {
+                                mc.beginPath();
+                                mc.moveTo(tileX + tileWidth, tileY);
+                                mc.lineTo(tileX + tileWidth, tileY + tileHeight);
+                                mc.lineTo(tileX, tileY + tileHeight);
+                                mc.fill();
+                            } else if(tile.dir == 2) {
+                                mc.beginPath();
+                                mc.moveTo(tileX, tileY);
+                                mc.lineTo(tileX + tileWidth, tileY + tileHeight);
+                                mc.lineTo(tileX, tileY + tileHeight);
+                                mc.fill();
+                            } else if(tile.dir == 3) {
+                                mc.beginPath();
+                                mc.moveTo(tileX, tileY);
+                                mc.lineTo(tileX + tileWidth, tileY);
+                                mc.lineTo(tileX, tileY + tileHeight);
+                                mc.fill();
+                            } else if(tile.dir == 4) {
+                                mc.beginPath();
+                                mc.moveTo(tileX, tileY);
+                                mc.lineTo(tileX + tileWidth, tileY);
+                                mc.lineTo(tileX + tileWidth, tileY + tileHeight);
+                                mc.fill();
+                            } */
+                            //}
+                        }
                     }
                 }
             }
@@ -430,10 +425,13 @@
             
             noise.seed(seed1);
             
-            var a = 19;
+            var a = 20;
             
-            for(var i = 0; i < a**2; i++){
-                chunks.push(new Chunk(i % a, Math.floor(i / a), "#6dd853", 0));
+            for(var i = 0; i < a; i++){
+                chunks[i] = [];
+                for(var j = 0; j < a; j++){
+                    chunks[i][j] = (new Chunk(i, j, "#6dd853", 0));
+                }
             }
             
             mapCanvas = document.createElement('canvas');
