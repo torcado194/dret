@@ -137,8 +137,8 @@
 
             var a = 0;
 
-            x *= 1;
-            y *= 1;
+            x *= 1.3;
+            y *= 1.3;
             [x,y] = rotate(x,y,6.324);
             
             //Large base landmasses. iterations reduce frequency. beginning scale affects jaggedness
@@ -305,9 +305,13 @@
             
             function flood(x1,y1){
                 var tile = getTileAt(x1,y1),
-                    segment = [];
-                visited.push(tile);
+                    segment = [],
+                    right = false,
+                    down = false,
+                    left = false,
+                    up = false;
                 //if(visited.includes(tile)) return false;
+                //visited.push(tile);
                 if(tiles.includes(tile)) return false;
                 if(tile.height < tolerance) return true;
                 tiles.push(tile);
@@ -316,21 +320,32 @@
                 if(flood(x1+1,y1)){
                     segment.push([tileX+1,tileY]);
                     segment.push([tileX+1,tileY+1]);
+                    right = true;
                 }
                 if(flood(x1,y1+1)){
-                    segment.push([tileX,tileY+1]);
                     segment.push([tileX+1,tileY+1]);
+                    segment.push([tileX,tileY+1]);
+                    down = true;
                 }
                 if(flood(x1-1,y1)){
-                    segment.push([tileX,tileY]);
                     segment.push([tileX,tileY+1]);
+                    segment.push([tileX,tileY]);
+                    left = true;
                 }
                 if(flood(x1,y1-1)){
-                    segment.push([tileX,tileY]);
-                    segment.push([tileX+1,tileY]);
+                    if(right){
+                        segment.splice(0,0,[tileX,tileY],[tileX+1,tileY])
+                    } else {
+                        segment.push([tileX,tileY]);
+                        segment.push([tileX+1,tileY]);
+                    }
+                    up = true;
                 }
                 if(segment.length > 0){
                     outline.push(segment);
+                }
+                if(segment.length == 4 && ((right == true && down == true) || (down == true && left == true) || (left == true && up == true) || (up == true && right == true))){
+                    segment.splice(1,2);
                 }
                 return false;
             }
@@ -362,6 +377,7 @@
                     path.lineTo(array[i][j+1][0],array[i][j+1][1]);
                 }
             }
+            
             outline = path;
         }
         
@@ -401,13 +417,14 @@
             
             
             c.fillText(getTileAt(mouseTileX, mouseTileY).height, mouseRelX, mouseRelY);
-            c.fillText(mouseTileX + ", " + mouseTileY, mouseRelX, mouseRelY + 20);
+            c.fillText(mouseTileX + ", " + mouseTileY, mouseRelX, mouseRelY - 20);
             
             
             c.save();
             c.scale(tileWidth, tileHeight);
             c.lineWidth = 0.5;
             c.strokeStyle = "hsl(48, 100%, 64%)";
+            c.lineCap = "round";
             c.stroke(outline);
             c.restore();
             
