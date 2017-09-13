@@ -58,7 +58,11 @@
             mouseX = 0,
             mouseY = 0,
             mouseRelX = 0,
-            mouseRelY = 0;
+            mouseRelY = 0,
+            mouseTileX = 0,
+            mouseTileY = 0;
+        
+        var outline = new Path2D();
         
         //Object Definitions
         function Chunk(x,y,color,dir){this.x = x; this.y = y; this.color = color; this.dir = dir; this.map = createMap(this)};
@@ -292,9 +296,73 @@
         }
         
         function floodFill(x,y){
-            var tolerance = 0.6,
-                tiles = [];
+            //debugger;
+            var tolerance = 0.2,
+                tiles = [],
+                visited = [],
+                outline = [];
+            //tiles.push(getTileAt(x,y));
             
+            function flood(x1,y1){
+                var tile = getTileAt(x1,y1),
+                    segment = [];
+                visited.push(tile);
+                //if(visited.includes(tile)) return false;
+                if(tiles.includes(tile)) return false;
+                if(tile.height < tolerance) return true;
+                tiles.push(tile);
+                var tileX = (tile.x + tile.chunk.x * chunkC),
+                    tileY = (tile.y + tile.chunk.y * chunkR);
+                if(flood(x1+1,y1)){
+                    segment.push([tileX+1,tileY]);
+                    segment.push([tileX+1,tileY+1]);
+                }
+                if(flood(x1,y1+1)){
+                    segment.push([tileX,tileY+1]);
+                    segment.push([tileX+1,tileY+1]);
+                }
+                if(flood(x1-1,y1)){
+                    segment.push([tileX,tileY]);
+                    segment.push([tileX,tileY+1]);
+                }
+                if(flood(x1,y1-1)){
+                    segment.push([tileX,tileY]);
+                    segment.push([tileX+1,tileY]);
+                }
+                if(segment.length > 0){
+                    outline.push(segment);
+                }
+                return false;
+            }
+            flood(x,y);
+            
+            arrayToPath(outline);
+            
+            console.log(tiles);
+        }
+        
+        function arrayToPath(array){
+            /*var newArray = [],
+                path = new Path2D();
+            
+            newArray[0] = array[0];
+            
+            for(var i = 0; i < array.length; i++){
+                if(array[i][0] == newArray[i][0] && array[i][1] == newArray[i][1]){
+                    
+                }
+            }*/
+            
+            var path = new Path2D();
+            
+            
+            for(var i = 0; i < array.length; i++){
+                for(var j = 0; j < array[i].length; j+=2){
+                    path.moveTo(array[i][j][0],array[i][j][1]);
+                    path.lineTo(array[i][j+1][0],array[i][j+1][1]);
+                }
+            }
+            outline = path;
         }
         
         
@@ -332,7 +400,17 @@
             c.strokeRect(Math.floor((mouseRelX)/(tileWidth)) * tileWidth, Math.floor((mouseRelY)/(tileHeight)) * tileHeight, tileWidth, tileHeight);
             
             
-            c.fillText(getTileAt(Math.floor(mouseRelX / tileWidth), Math.floor(mouseRelY / tileHeight)).height, mouseRelX, mouseRelY);
+            c.fillText(getTileAt(mouseTileX, mouseTileY).height, mouseRelX, mouseRelY);
+            c.fillText(mouseTileX + ", " + mouseTileY, mouseRelX, mouseRelY + 20);
+            
+            
+            c.save();
+            c.scale(tileWidth, tileHeight);
+            c.lineWidth = 0.5;
+            c.strokeStyle = "hsl(48, 100%, 64%)";
+            c.stroke(outline);
+            c.restore();
+            
             
             /*if((mouseRelXCenter) >= tileX && (mouseRelXCenter) <= tileX + tileWidth && (mouseRelYCenter) >= tileY && (mouseRelYCenter) <= tileY + tileHeight){
                 mc.strokeStyle = "hsl(328, 100%, 67%)";
@@ -461,10 +539,12 @@
             mouseY = e.clientY;
             mouseRelX = mouseX + camX;
             mouseRelY = mouseY + camY;
+            mouseTileX = Math.floor(mouseRelX / tileWidth);
+            mouseTileY = Math.floor(mouseRelY / tileHeight);
         }
         
         function mouseDown(e) {
-            console.log(getTileAt(Math.floor(mouseRelX / tileWidth), Math.floor(mouseRelY / tileHeight)));
+            floodFill(mouseTileX, mouseTileY)
         }
         
         function keyDown(e) {
