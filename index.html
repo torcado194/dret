@@ -278,11 +278,17 @@
         }
         
         function getTileAt(x,y){
-            var chunkX = Math.floor(x / chunkC),
-                chunkY = Math.floor(y / chunkR),
-                tileX = (x % chunkC),
-                tileY = (y % chunkR);
-            return chunks[chunkY][chunkX].map[tileY][tileX];
+            var tileX = (x % chunkC),
+                tileY = (y % chunkR),
+                chunkX = Math.floor(x / chunkC),
+                chunkY = Math.floor(y / chunkR);
+            for(var a = 0; a < chunks.length; a++){
+                var chunk = chunks[a]
+                if(chunk.x == chunkX && chunk.y == chunkY){
+                    return chunk.map[tileX][tileY];
+                }
+            }
+            return chunks[0].map[0][0];
         }
         
         function floodFill(x,y){
@@ -325,6 +331,9 @@
             c.strokeRect(Math.floor((mouseRelX)/(chunkWidth)) * chunkWidth, Math.floor((mouseRelY)/(chunkHeight)) * chunkHeight, chunkWidth, chunkHeight);
             c.strokeRect(Math.floor((mouseRelX)/(tileWidth)) * tileWidth, Math.floor((mouseRelY)/(tileHeight)) * tileHeight, tileWidth, tileHeight);
             
+            
+            c.fillText(getTileAt(Math.floor(mouseRelX / tileWidth), Math.floor(mouseRelY / tileHeight)).height, mouseRelX, mouseRelY);
+            
             /*if((mouseRelXCenter) >= tileX && (mouseRelXCenter) <= tileX + tileWidth && (mouseRelYCenter) >= tileY && (mouseRelYCenter) <= tileY + tileHeight){
                 mc.strokeStyle = "hsl(328, 100%, 67%)";
                 mc.strokeRect(tileX, tileY, tileWidth, tileHeight);
@@ -356,50 +365,48 @@
             mc.fillRect(camXCenter, camYCenter,canvas.width,canvas.height);
 
             for(var a = 0; a < chunks.length; a++){
-                for(var b = 0; b < chunks[0].length; b++){
-                    var chunk = chunks[a][b];
-                    var chunkX = chunk.x * chunkWidth;
-                    var chunkY = chunk.y * chunkHeight;
-                    //if(!(chunkX > camXCenter && chunkX < camX + canvas.width / 2 && chunkY > camYCenter && chunkY < camY + canvas.height / 2))
-                    //    continue;
-                    //mc.fillStyle = chunk.color;
-                    //mc.fillRect(chunkX, chunkY, chunkWidth, chunkHeight)
-                    for(var i = 0; i < chunk.map.length; i++){
-                        for(var j = 0; j < chunk.map[0].length; j++){
-                            var tile = chunk.map[i][j];
-                            var tileX = chunkX + tile.x * tileWidth;
-                            var tileY = chunkY + tile.y * tileHeight;
-                            //if(tileX > camXCenter && tileX < camX + canvas.width / 2 && tileY > camYCenter && tileY < camY + canvas.height / 2){
-                            mc.fillStyle = tile.color;
-                            mc.fillRect(tileX, tileY, tileWidth, tileHeight)
-                            /*if(tile.dir == 0){
-                            } else if(tile.dir == 1) {
-                                mc.beginPath();
-                                mc.moveTo(tileX + tileWidth, tileY);
-                                mc.lineTo(tileX + tileWidth, tileY + tileHeight);
-                                mc.lineTo(tileX, tileY + tileHeight);
-                                mc.fill();
-                            } else if(tile.dir == 2) {
-                                mc.beginPath();
-                                mc.moveTo(tileX, tileY);
-                                mc.lineTo(tileX + tileWidth, tileY + tileHeight);
-                                mc.lineTo(tileX, tileY + tileHeight);
-                                mc.fill();
-                            } else if(tile.dir == 3) {
-                                mc.beginPath();
-                                mc.moveTo(tileX, tileY);
-                                mc.lineTo(tileX + tileWidth, tileY);
-                                mc.lineTo(tileX, tileY + tileHeight);
-                                mc.fill();
-                            } else if(tile.dir == 4) {
-                                mc.beginPath();
-                                mc.moveTo(tileX, tileY);
-                                mc.lineTo(tileX + tileWidth, tileY);
-                                mc.lineTo(tileX + tileWidth, tileY + tileHeight);
-                                mc.fill();
-                            } */
-                            //}
-                        }
+                var chunk = chunks[a];
+                var chunkX = chunk.x * chunkWidth;
+                var chunkY = chunk.y * chunkHeight;
+                //if(!(chunkX > camXCenter && chunkX < camX + canvas.width / 2 && chunkY > camYCenter && chunkY < camY + canvas.height / 2))
+                //    continue;
+                //mc.fillStyle = chunk.color;
+                //mc.fillRect(chunkX, chunkY, chunkWidth, chunkHeight)
+                for(var i = 0; i < chunk.map.length; i++){
+                    for(var j = 0; j < chunk.map[0].length; j++){
+                        var tile = chunk.map[i][j];
+                        var tileX = chunkX + tile.x * tileWidth;
+                        var tileY = chunkY + tile.y * tileHeight;
+                        //if(tileX > camXCenter && tileX < camX + canvas.width / 2 && tileY > camYCenter && tileY < camY + canvas.height / 2){
+                        mc.fillStyle = tile.color;
+                        mc.fillRect(tileX, tileY, tileWidth, tileHeight)
+                        /*if(tile.dir == 0){
+                        } else if(tile.dir == 1) {
+                            mc.beginPath();
+                            mc.moveTo(tileX + tileWidth, tileY);
+                            mc.lineTo(tileX + tileWidth, tileY + tileHeight);
+                            mc.lineTo(tileX, tileY + tileHeight);
+                            mc.fill();
+                        } else if(tile.dir == 2) {
+                            mc.beginPath();
+                            mc.moveTo(tileX, tileY);
+                            mc.lineTo(tileX + tileWidth, tileY + tileHeight);
+                            mc.lineTo(tileX, tileY + tileHeight);
+                            mc.fill();
+                        } else if(tile.dir == 3) {
+                            mc.beginPath();
+                            mc.moveTo(tileX, tileY);
+                            mc.lineTo(tileX + tileWidth, tileY);
+                            mc.lineTo(tileX, tileY + tileHeight);
+                            mc.fill();
+                        } else if(tile.dir == 4) {
+                            mc.beginPath();
+                            mc.moveTo(tileX, tileY);
+                            mc.lineTo(tileX + tileWidth, tileY);
+                            mc.lineTo(tileX + tileWidth, tileY + tileHeight);
+                            mc.fill();
+                        } */
+                        //}
                     }
                 }
             }
@@ -426,12 +433,9 @@
             noise.seed(seed1);
             
             var a = 20;
-            
-            for(var i = 0; i < a; i++){
-                chunks[i] = [];
-                for(var j = 0; j < a; j++){
-                    chunks[i][j] = (new Chunk(i, j, "#6dd853", 0));
-                }
+
+            for(var i = 0; i < a**2; i++){
+                chunks.push(new Chunk(i % a, Math.floor(i / a), "#6dd853", 0));
             }
             
             mapCanvas = document.createElement('canvas');
@@ -448,6 +452,7 @@
         
         //Event handlers
         document.addEventListener("mousemove", mouseMove, false);
+        document.addEventListener("mousedown", mouseDown, false);
         document.addEventListener("keydown", keyDown, false);
         document.addEventListener("keyup", keyUp, false);
         
@@ -456,6 +461,10 @@
             mouseY = e.clientY;
             mouseRelX = mouseX + camX;
             mouseRelY = mouseY + camY;
+        }
+        
+        function mouseDown(e) {
+            console.log(getTileAt(Math.floor(mouseRelX / tileWidth), Math.floor(mouseRelY / tileHeight)));
         }
         
         function keyDown(e) {
