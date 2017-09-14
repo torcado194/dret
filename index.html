@@ -63,12 +63,10 @@
             mouseTileY = 0,
             landmasses = [];
         
-        var outline = new Path2D();
-        
         //Object Definitions
         function Chunk(x,y,color,dir){this.x = x; this.y = y; this.color = color; this.dir = dir; this.map = createMap(this)};
         function Tile(chunk,x,y,height,color,dir){this.chunk = chunk; this.x = x; this.y = y; this.height = height; this.color = color; this.dir = dir};
-        function Landmass(){}; //x,y,map,outline
+        function Landmass(x = 0, y = 0, map = [], outline = []){this.x = x; this.y = y; this.map = map; this.outline = outline}; //x,y,map,outline
         
         //Behavioral Functions
         function createMap(chunk){
@@ -388,10 +386,10 @@
                 for(var i = 0; i < chunk.map.length; i++){
                     for(var j = 0; j < chunk.map[0].length; j++){
                         var tile = chunk.map[i][j];
-                        if(tile.landmass == undefined){
-                            var l = new Landmass()
+                        if(!tile.landmass && tile.height >= 0.2){
+                            var l = new Landmass();
+                            [l.map, l.outline] = floodFill(tile.x + chunk.x * chunkC,tile.y + chunk.y * chunkR,l);
                             landmasses.push(l);
-                            [l.map, l.outline] = floodFill(tile.x,tile.y,l);
                         }
                     }
                 }
@@ -442,7 +440,9 @@
             c.lineWidth = 0.5;
             c.strokeStyle = "hsl(48, 100%, 64%)";
             c.lineCap = "round";
-            c.stroke(outline);
+            for(var i = 0; i < landmasses.length; i++){
+                c.stroke(landmasses[i].outline);
+            }
             c.restore();
             
             
@@ -578,7 +578,7 @@
         }
         
         function mouseDown(e) {
-            floodFill(mouseTileX, mouseTileY)
+            //floodFill(mouseTileX, mouseTileY)
         }
         
         function keyDown(e) {
