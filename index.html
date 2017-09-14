@@ -60,13 +60,15 @@
             mouseRelX = 0,
             mouseRelY = 0,
             mouseTileX = 0,
-            mouseTileY = 0;
+            mouseTileY = 0,
+            landmasses = [];
         
         var outline = new Path2D();
         
         //Object Definitions
         function Chunk(x,y,color,dir){this.x = x; this.y = y; this.color = color; this.dir = dir; this.map = createMap(this)};
         function Tile(chunk,x,y,height,color,dir){this.chunk = chunk; this.x = x; this.y = y; this.height = height; this.color = color; this.dir = dir};
+        function Landmass(){}; //x,y,map,outline
         
         //Behavioral Functions
         function createMap(chunk){
@@ -295,7 +297,7 @@
             return chunks[0].map[0][0];
         }
         
-        function floodFill(x,y){
+        function floodFill(x,y,landmass){
             //debugger;
             var tolerance = 0.2,
                 tiles = [],
@@ -315,6 +317,7 @@
                 if(tiles.includes(tile)) return false;
                 if(tile.height < tolerance) return true;
                 tiles.push(tile);
+                tile.landmass = landmass;
                 var tileX = (tile.x + tile.chunk.x * chunkC),
                     tileY = (tile.y + tile.chunk.y * chunkR);
                 if(flood(x1+1,y1)){
@@ -351,9 +354,7 @@
             }
             flood(x,y);
             
-            arrayToPath(outline);
-            
-            console.log(tiles);
+            return [tiles, arrayToPath(outline)]
         }
         
         function arrayToPath(array){
@@ -378,7 +379,23 @@
                 }
             }
             
-            outline = path;
+            return path;
+        }
+        
+        function populateLandmasses(){
+            for(var a = 0; a < chunks.length; a++){
+                var chunk = chunks[a];
+                for(var i = 0; i < chunk.map.length; i++){
+                    for(var j = 0; j < chunk.map[0].length; j++){
+                        var tile = chunk.map[i][j];
+                        if(tile.landmass == undefined){
+                            var l = new Landmass()
+                            landmasses.push(l);
+                            [l.map, l.outline] = floodFill(tile.x,tile.y,l);
+                        }
+                    }
+                }
+            }
         }
         
         
