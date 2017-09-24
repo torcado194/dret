@@ -72,7 +72,7 @@
         
         //Object Definitions
         function Chunk(x,y,color,bgColor,dir){this.x = x; this.y = y; this.color = color; this.bgColor = bgColor; this.dir = dir; this.map = createMap(this)};
-        function Tile(chunk,x,y,relX,relY,height,color,dir){this.chunk = chunk; this.x = x; this.y = y; this.relX = relX; this.relY = relY; this.height = height; this.color = color; this.dir = dir};
+        function Tile(chunk,x,y,relX,relY,height,biome,color,dir){this.chunk = chunk; this.x = x; this.y = y; this.relX = relX; this.relY = relY; this.height = height; this.biome = biome; this.color = color; this.dir = dir};
         function Landmass(x = 0, y = 0, map = [], outline = []){this.x = x; this.y = y; this.map = map; this.outline = outline}; //x,y,map,outline
         
         //Behavioral Functions
@@ -101,7 +101,7 @@
                         biome = terrain.biome,
                         color = getTerrainColor(terrain),
                         bgColor = color;
-                    map[i][j] = new Tile(chunk,i + (chunk.x * chunkC), j + (chunk.y * chunkR),i,j,height,color,bgColor,Math.floor(Math.random() * 5))
+                    map[i][j] = new Tile(chunk,i + (chunk.x * chunkC), j + (chunk.y * chunkR),i,j,height,biome,color,bgColor,Math.floor(Math.random() * 5))
                 }   
             }
             return map;
@@ -648,6 +648,7 @@
                     for(var j = 0; j < chunk.map[0].length; j++){
                         var tile = chunk.map[i][j];
                         var height = tile.height;
+                        var biome = tile.biome;
                         var adj = [
                             getTileAt(tile.x, tile.y - 1),
                             getTileAt(tile.x + 1, tile.y),
@@ -671,6 +672,48 @@
                                 tile.dir = 1;
                             } else if((adj[3].height >= height && adj[0].height >= height)){
                                 tile.dir = 2;
+                            }
+                        }
+                        if(tile.dir == 0){
+                            adjCount = adj.filter((item)=>(item.biome != biome)).length;
+                            if(adjCount == 4){
+                                
+                            } else if(adjCount == 3){
+                                if(adj[0].biome >= biome){
+                                    tile.dir = 2;
+                                } else if(adj[1].biome >= biome){
+                                    tile.dir = 3;
+                                } else if(adj[2].biome >= biome){
+                                    tile.dir = 4;
+                                } else if(adj[3].biome >= biome){
+                                    tile.dir = 1;
+                                }
+                            } else if(adjCount == 2){
+                                if((adj[0].biome >= biome && adj[2].biome >= biome) || (adj[1].biome >= biome && adj[3].biome >= biome)){
+                                    //tile.dir = 0;
+                                } else if((adj[0].biome >= biome && adj[1].biome >= biome)){
+                                    tile.dir = 3;
+                                } else if((adj[1].biome >= biome && adj[2].biome >= biome)){
+                                    tile.dir = 4;
+                                } else if((adj[2].biome >= biome && adj[3].biome >= biome)){
+                                    tile.dir = 1;
+                                } else if((adj[3].biome >= biome && adj[0].biome >= biome)){
+                                    tile.dir = 2;
+                                }
+                            } else {
+                                
+                            }
+                            if(tile.dir != 0){
+                                tile.bgColor = (adj.filter((item)=>(item.biome != biome))[0] || tile).color;
+                                /*if(tile.dir == 1){
+                                    tile.bgColor = getTileAt(tile.x + 1, tile.y - 1).color;
+                                } else if(tile.dir == 2){
+                                    tile.bgColor = getTileAt(tile.x + 1, tile.y + 1).color;
+                                } else if(tile.dir == 3){
+                                    tile.bgColor = getTileAt(tile.x - 1, tile.y + 1).color;
+                                } else if(tile.dir == 4){
+                                    tile.bgColor = getTileAt(tile.x - 1, tile.y - 1).color;
+                                }*/
                             }
                         }
                     }
