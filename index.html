@@ -68,11 +68,11 @@
             landmasses = [];
         
         //test
-        var switchCanvas = true;
+        var zoom = true;
         
         //Object Definitions
-        function Chunk(x,y,color,bgColor,dir){this.x = x; this.y = y; this.color = color; this.bgColor = bgColor; this.dir = dir; this.map = createMap(this)};
-        function Tile(chunk,x,y,relX,relY,height,biome,color,dir){this.chunk = chunk; this.x = x; this.y = y; this.relX = relX; this.relY = relY; this.height = height; this.biome = biome; this.color = color; this.dir = dir};
+        function Chunk(x,y,color,dir){this.x = x; this.y = y; this.color = color; this.dir = dir; this.map = createMap(this)};
+        function Tile(chunk,x,y,relX,relY,height,biome,bgBiome,color,bgColor,dir){this.chunk = chunk; this.x = x; this.y = y; this.relX = relX; this.relY = relY; this.height = height; this.biome = biome; this.bgBiome = bgBiome; this.color = color; this.bgColor = bgColor; this.dir = dir};
         function Landmass(x = 0, y = 0, map = [], outline = []){this.x = x; this.y = y; this.map = map; this.outline = outline}; //x,y,map,outline
         
         //Behavioral Functions
@@ -87,6 +87,42 @@
             tileHeight = tileBaseHeight * scale;
         }
         
+        function updateMouse(){
+            mouseRelX = mouseX + camX;
+            mouseRelY = mouseY + camY;
+            mouseTileX = Math.floor(mouseRelX / tileWidth);
+            mouseTileY = Math.floor(mouseRelY / tileHeight);
+        }
+        
+        function toggleZoom(){
+            zoom = !zoom;
+            if(zoom){
+                scale = 6;
+                resolution = 1;
+                updateVars();
+            } else {
+                scale = 1;
+                resolution = 2;
+                updateVars();
+            }
+            updateMouse();
+        }
+        
+        function chunkZoom(chunk){
+            zoom = !zoom;
+            if(zoom){
+                scale = 6;
+                resolution = 1;
+                updateVars();
+            } else {
+                scale = 1;
+                resolution = 2;
+                updateVars();
+            }
+            camX = chunk.x * chunkWidth + (chunkWidth / 2) - canvas.width / 2;
+            camY = chunk.y * chunkHeight + (chunkHeight / 2) - canvas.height / 2;
+            updateMouse();
+        }
         
         function createMap(chunk){
             var map = [],
@@ -100,6 +136,7 @@
                         height = terrain.height,
                         biome = terrain.biome,
                         color = getTerrainColor(terrain),
+                        bgBiome = biome,
                         bgColor = color;
                     map[i][j] = new Tile(chunk,i + (chunk.x * chunkC), j + (chunk.y * chunkR),i,j,height,biome,color,bgColor,Math.floor(Math.random() * 5))
                 }   
@@ -552,6 +589,18 @@
             return chunks[0].map[0][0];
         }
         
+        function getChunkAt(x,y){
+            var chunkX = Math.floor(x / chunkC),
+                chunkY = Math.floor(y / chunkR);
+            for(var a = 0; a < chunks.length; a++){
+                var chunk = chunks[a]
+                if(chunk.x == chunkX && chunk.y == chunkY){
+                    return chunk;
+                }
+            }
+            return chunks[0];
+        }
+        
         function floodFill(x,y,landmass){
             //debugger;
             var tolerance = 0.2,
@@ -705,6 +754,7 @@
                             }
                             if(tile.dir != 0){
                                 tile.bgColor = (adj.filter((item)=>(item.biome != biome))[0] || tile).color;
+                                tile.bgBiome = (adj.filter((item)=>(item.biome != biome))[0] || tile).biome;
                                 /*if(tile.dir == 1){
                                     tile.bgColor = getTileAt(tile.x + 1, tile.y - 1).color;
                                 } else if(tile.dir == 2){
@@ -752,7 +802,7 @@
         
         function draw(){
             var mainCanvas;
-            mainCanvas = switchCanvas ? macroCanvas : chunkCanvas;
+            mainCanvas = zoom ? chunkCanvas : macroCanvas;
             c.setTransform(1, 0, 0, 1, -Math.floor(camX), -Math.floor(camY));
             c.drawImage(mainCanvas, 0, 0);
             
@@ -865,6 +915,10 @@
             seed3 = 855;
             seed4 = 1334;*/
             
+            seed1 = 1157;
+            seed2 = 1251;
+            seed3 = 403;
+            seed4 = 341;
             
             noise.seed(seed1);
             
@@ -921,6 +975,7 @@
         
         function mouseDown(e) {
             //floodFill(mouseTileX, mouseTileY)
+            chunkZoom(getChunkAt(mouseTileX, mouseTileY));
         }
         
         function keyDown(e) {
