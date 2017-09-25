@@ -721,6 +721,10 @@
             }
         }
         
+        function averageTile(tiles){
+            
+        }
+        
         
         //Update
         function step(time){
@@ -782,6 +786,10 @@
 
             //if(pressed.includes("ArrowLeft") || pressed.includes("ArrowRight") || pressed.includes("ArrowUp") || pressed.includes("ArrowDown"))
 
+            
+            //tileWidth *= resolution;
+            //tileHeight *= resolution;
+            
             c.fillStyle = "#7FC6FF";
             c.fillRect(camXCenter, camYCenter,canvas.width,canvas.height);
 
@@ -793,11 +801,11 @@
                 //    continue;
                 //mc.fillStyle = chunk.color;
                 //mc.fillRect(chunkX, chunkY, chunkWidth, chunkHeight)
-                for(var i = 0; i < chunk.map.length; i++){
-                    for(var j = 0; j < chunk.map[0].length; j++){
+                for(var i = 0; i < chunk.map.length; i+=resolution){
+                    for(var j = 0; j < chunk.map[0].length; j+=resolution){
                         var tile = chunk.map[i][j];
-                        var tileX = tile.x * tileWidth;
-                        var tileY = tile.y * tileHeight;
+                        var tileX = tile.x * (tileWidth / resolution);
+                        var tileY = tile.y * (tileHeight / resolution);
                         //if(tileX > camXCenter && tileX < camX + canvas.width / 2 && tileY > camYCenter && tileY < camY + canvas.height / 2){
                         c.fillStyle = tile.bgColor;
                         c.fillRect(tileX, tileY, tileWidth, tileHeight)
@@ -805,29 +813,29 @@
                         if(tile.dir == 0){
                             c.fillRect(tileX, tileY, tileWidth, tileHeight)
                         } else if(tile.dir == 1) {
-                            mc.beginPath();
-                            mc.moveTo(tileX, tileY);
-                            mc.lineTo(tileX + tileWidth, tileY + tileHeight);
-                            mc.lineTo(tileX, tileY + tileHeight);
-                            mc.fill();
+                            c.beginPath();
+                            c.moveTo(tileX, tileY);
+                            c.lineTo(tileX + tileWidth, tileY + tileHeight);
+                            c.lineTo(tileX, tileY + tileHeight);
+                            c.fill();
                         } else if(tile.dir == 2) {
-                            mc.beginPath();
-                            mc.moveTo(tileX, tileY);
-                            mc.lineTo(tileX + tileWidth, tileY);
-                            mc.lineTo(tileX, tileY + tileHeight);
-                            mc.fill();
+                            c.beginPath();
+                            c.moveTo(tileX, tileY);
+                            c.lineTo(tileX + tileWidth, tileY);
+                            c.lineTo(tileX, tileY + tileHeight);
+                            c.fill();
                         } else if(tile.dir == 3) {
-                            mc.beginPath();
-                            mc.moveTo(tileX, tileY);
-                            mc.lineTo(tileX + tileWidth, tileY);
-                            mc.lineTo(tileX + tileWidth, tileY + tileHeight);
-                            mc.fill();
+                            c.beginPath();
+                            c.moveTo(tileX, tileY);
+                            c.lineTo(tileX + tileWidth, tileY);
+                            c.lineTo(tileX + tileWidth, tileY + tileHeight);
+                            c.fill();
                         } else if(tile.dir == 4) {
-                            mc.beginPath();
-                            mc.moveTo(tileX + tileWidth, tileY);
-                            mc.lineTo(tileX + tileWidth, tileY + tileHeight);
-                            mc.lineTo(tileX, tileY + tileHeight);
-                            mc.fill();
+                            c.beginPath();
+                            c.moveTo(tileX + tileWidth, tileY);
+                            c.lineTo(tileX + tileWidth, tileY + tileHeight);
+                            c.lineTo(tileX, tileY + tileHeight);
+                            c.fill();
                         } 
                         //}
                     }
@@ -870,7 +878,7 @@
             
             //Create macro map
             scale = 1;
-            resolution = 1;
+            resolution = 2;
             updateVars();
             
             macroCanvas = document.createElement('canvas');
@@ -880,7 +888,7 @@
             drawMap(mc);
             
             //create chunk map
-            /*scale = 6;
+            scale = 6;
             resolution = 1;
             updateVars();
             
@@ -888,7 +896,7 @@
             chunkCanvas.width = a*chunkWidth;
             chunkCanvas.height = a*chunkHeight;
             cc = chunkCanvas.getContext('2d');
-            drawMap(cc);*/
+            drawMap(cc);
             
             step();
         }
