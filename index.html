@@ -131,6 +131,12 @@
             updateMouse();
         }
         
+        function generateChunk(x,y){
+            var chunk = new Chunk(x, y, "#6dd853", 0);
+            chunks.push(chunk);
+            return chunk;
+        }
+        
         function createMap(chunk){
             var map = [],
                 w = chunkC,
@@ -582,7 +588,7 @@
             }
         }
         
-        function getTileAt(x,y){
+        function getTileAt(x,y, safe = true){
             var tileX = ((x % chunkC) + chunkC) % chunkC,
                 tileY = ((y % chunkR) + chunkR) % chunkR,
                 chunkX = Math.floor(x / chunkC),
@@ -593,10 +599,20 @@
                     return chunk.map[tileX][tileY];
                 }
             }
-            return chunks[0].map[0][0];
+            return safe ? chunks[0].map[0][0] : false;
         }
         
         function getChunkAt(x,y){
+            for(var a = 0; a < chunks.length; a++){
+                var chunk = chunks[a]
+                if(chunk.x == x && chunk.y == y){
+                    return chunk;
+                }
+            }
+            return false;
+        }
+        
+        function getChunkAtTile(x,y){
             var chunkX = Math.floor(x / chunkC),
                 chunkY = Math.floor(y / chunkR);
             for(var a = 0; a < chunks.length; a++){
@@ -605,7 +621,7 @@
                     return chunk;
                 }
             }
-            return chunks[0];
+            return false;
         }
         
         function floodFill(x,y,landmass){
@@ -697,23 +713,39 @@
             }
         }
         
-        function fillTris(){
-            for(var a = 0; a < chunks.length; a++){
-                var chunk = chunks[a];
+        function fillTris(chunk){
+            
+            if(chunk){
+                fill(chunk);
+            } else {
+                for(var a = 0; a < chunks.length; a++){
+                    fill(chunks[a]);
+                }
+            }
+            
+            function fill(chunk){
                 for(var i = 0; i < chunk.map.length; i++){
                     for(var j = 0; j < chunk.map[0].length; j++){
                         var tile = chunk.map[i][j];
                         var height = tile.height;
                         var biome = tile.biome;
                         var adj = [
-                            getTileAt(tile.x, tile.y - 1),
-                            getTileAt(tile.x + 1, tile.y),
-                            getTileAt(tile.x, tile.y + 1),
-                            getTileAt(tile.x - 1, tile.y)
+                            getTileAt(tile.x, tile.y - 1, false) || getTerrain(tile.x, tile.y - 1),
+                            getTileAt(tile.x + 1, tile.y, false) || getTerrain(tile.x + 1, tile.y),
+                            getTileAt(tile.x, tile.y + 1, false) || getTerrain(tile.x, tile.y + 1),
+                            getTileAt(tile.x - 1, tile.y, false) || getTerrain(tile.x - 1, tile.y)
                         ]
+                        
+                        adj.map(function(item){
+                            if(!item.color){
+                                item.color = getTerrainColor(item);
+                            }
+                            return item;
+                        })
+                        
                         var adjCount = adj.filter((item)=>(item.height >= height)).length;
                         tile.bgColor = (adj.filter((item)=>(item.height < height))[0] || tile).color;
-                        
+
                         tile.dir = 0;
                         if(adjCount >= 3){
                             //tile.dir = 0;
@@ -733,7 +765,7 @@
                         if(tile.dir == 0){
                             adjCount = adj.filter((item)=>(item.biome != biome)).length;
                             if(adjCount == 4){
-                                
+
                             } else if(adjCount == 3){
                                 if(adj[0].biome >= biome){
                                     tile.dir = 2;
@@ -757,20 +789,20 @@
                                     tile.dir = 2;
                                 }
                             } else {
-                                
+
                             }
                             if(tile.dir != 0){
                                 tile.bgColor = (adj.filter((item)=>(item.biome != biome))[0] || tile).color;
                                 tile.bgBiome = (adj.filter((item)=>(item.biome != biome))[0] || tile).biome;
                                 /*if(tile.dir == 1){
-                                    tile.bgColor = getTileAt(tile.x + 1, tile.y - 1).color;
-                                } else if(tile.dir == 2){
-                                    tile.bgColor = getTileAt(tile.x + 1, tile.y + 1).color;
-                                } else if(tile.dir == 3){
-                                    tile.bgColor = getTileAt(tile.x - 1, tile.y + 1).color;
-                                } else if(tile.dir == 4){
-                                    tile.bgColor = getTileAt(tile.x - 1, tile.y - 1).color;
-                                }*/
+                                        tile.bgColor = getTileAt(tile.x + 1, tile.y - 1).color;
+                                    } else if(tile.dir == 2){
+                                        tile.bgColor = getTileAt(tile.x + 1, tile.y + 1).color;
+                                    } else if(tile.dir == 3){
+                                        tile.bgColor = getTileAt(tile.x - 1, tile.y + 1).color;
+                                    } else if(tile.dir == 4){
+                                        tile.bgColor = getTileAt(tile.x - 1, tile.y - 1).color;
+                                    }*/
                             }
                         }
                     }
@@ -866,11 +898,13 @@
                 boundsLeft   = ((area == "right") ? w : 0),
                 boundsRight  = ((area == "left")  ? w : w * 2),
                 boundsTop    = ((area == "down")  ? h : 0),
-                boundsBottom = ((area == "up")    ? h : h * 2);
+                boundsBottom = ((area == "up")    ? h : h * 2),
+                boundsWidth  = boundsRight - boundsLeft,
+                boundsHeight = boundsBottom - boundsTop;
             
             c.setTransform(1, 0, 0, 1, -ccOffsetX, -ccOffsetY);
             
-            c.drawImage(canvas, boundsLeft, boundsTop, boundsRight - boundsLeft, boundsBottom - boundsTop, (area == "left" ? w : 0) + ccOffsetX, (area == "up" ? h : 0) + ccOffsetY, boundsRight - boundsLeft, boundsBottom - boundsTop);
+            c.drawImage(canvas, boundsLeft, boundsTop, boundsWidth, boundsHeight, (area == "left" ? w : 0) + ccOffsetX, (area == "up" ? h : 0) + ccOffsetY, boundsWidth, boundsHeight);
             //mc.fillRect(0, 0, 4 * scale, 4 * scale)
 
             //if(pressed.includes("ArrowLeft") || pressed.includes("ArrowRight") || pressed.includes("ArrowUp") || pressed.includes("ArrowDown"))
@@ -886,12 +920,35 @@
             d(a);
             
             function d(a){
-                var chunk = chunks[a];
+                
+                var checkY = boundsTop + ccOffsetY + Math.floor(a / Math.ceil(boundsWidth / chunkWidth)) * chunkHeight;
+                
+                if(Math.floor((checkY - ccOffsetY) / chunkHeight) * chunkHeight > boundsBottom){ //there's a better way to check this. something with ceil boundsheight / chunkheight
+                    return;
+                }
+                var checkX = boundsLeft + ccOffsetX + (a % Math.ceil(boundsWidth / chunkWidth)) * chunkWidth;
+                var cx = Math.floor(checkX / chunkWidth),
+                    cy = Math.floor(checkY / chunkHeight);
+                
+                var chunk;
+                if(!(chunk = getChunkAt(cx, cy))){
+                    chunk = generateChunk(cx, cy);
+                    fillTris(chunk);
+                }
+                
+                drawChunk(chunk);
+                
+                requestAnimationFrame(function(){
+                    d(++a);
+                })
+            }
+            
+            function drawChunk(chunk){
                 var chunkX = chunk.x * chunkWidth;
                 var chunkY = chunk.y * chunkHeight;
-                
-                if((chunkX + chunkWidth - ccOffsetX > boundsLeft && chunkX - ccOffsetX < boundsRight && chunkY + chunkHeight - ccOffsetY > boundsTop && chunkY - ccOffsetY < boundsBottom)){
-                
+
+                //if((chunkX + chunkWidth - ccOffsetX > boundsLeft && chunkX - ccOffsetX < boundsRight && chunkY + chunkHeight - ccOffsetY > boundsTop && chunkY - ccOffsetY < boundsBottom)){
+
                     //if(!(chunkX > camXCenter && chunkX < camX + canvas.width / 2 && chunkY > camYCenter && chunkY < camY + canvas.height / 2))
                     //    continue;
                     //mc.fillStyle = chunk.color;
@@ -935,16 +992,7 @@
                             //}
                         }
                     }
-                    if(++a < chunks.length){
-                        requestAnimationFrame(function(){
-                            d(a);
-                        })
-                    }
-                } else {
-                    if(++a < chunks.length){
-                        d(a);
-                    }
-                }
+                //}
             }
             
         }
@@ -973,14 +1021,19 @@
             seed3 = 855;
             seed4 = 1334;*/
             
-            /*seed1 = 1157;
+            seed1 = 1157;
             seed2 = 1251;
             seed3 = 403;
-            seed4 = 341;*/
+            seed4 = 341;
+            
+            /*seed1 = 1379;
+            seed2 = 1390;
+            seed3 = 676;
+            seed4 = 1266;*/
             
             noise.seed(seed1);
             
-            var a = 40;
+            var a = 4;
 
             //Gen map
             for(var i = 0; i < a**2; i++){
@@ -1037,7 +1090,7 @@
         
         function mouseDown(e) {
             //floodFill(mouseTileX, mouseTileY)
-            //chunkZoom(getChunkAt(mouseTileX, mouseTileY));
+            //chunkZoom(getChunkAtTile(mouseTileX, mouseTileY));
         }
         
         function keyDown(e) {
