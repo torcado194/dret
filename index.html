@@ -34,9 +34,10 @@
             macroCanvas,
             mc,
             chunkCanvas,
-            cc;
+            cc,
+            cview;
         
-        var scale = 1,
+        var scale = 6,
             resolution = 1,
             chunkSize = 16,
             chunkBaseWidth = 96,
@@ -86,10 +87,10 @@
         function updateVars(){
             chunkWidth = chunkBaseWidth * scale;
             chunkHeight = chunkBaseHeight * scale;
-            chunkC = chunkSize / resolution;
+            /*chunkC = chunkSize / resolution;
             chunkR = chunkSize / resolution;
             tileBaseWidth = chunkBaseWidth / chunkC;
-            tileBaseHeight = chunkBaseHeight / chunkR;
+            tileBaseHeight = chunkBaseHeight / chunkR;*/
             tileWidth = tileBaseWidth * scale;
             tileHeight = tileBaseHeight * scale;
         }
@@ -106,13 +107,12 @@
             if(zoom){
                 scale = 6;
                 resolution = 1;
-                updateVars();
             } else {
                 scale = 1;
                 resolution = 2;
-                updateVars();
             }
             updateMouse();
+            drawMap(cview);
         }
         
         function chunkZoom(chunk){
@@ -120,15 +120,18 @@
             if(zoom){
                 scale = 6;
                 resolution = 1;
-                updateVars();
+                updateVars()
             } else {
                 scale = 1;
                 resolution = 2;
-                updateVars();
+                updateVars()
             }
             camX = chunk.x * chunkWidth + (chunkWidth / 2) - w / 2;
             camY = chunk.y * chunkHeight + (chunkHeight / 2) - h / 2;
+            ccOffsetX = 0;
+            ccOffsetY = 0;
             updateMouse();
+            drawMap(cview);
         }
         
         function generateChunk(x,y){
@@ -160,8 +163,8 @@
         function getTerrain(x,y){
 
             var a = 0;
-            x *= 0.45 * resolution;
-            y *= 0.45 * resolution;
+            x *= 0.45;
+            y *= 0.45;
             [x,y] = rotate(x,y,6.324);
             
             //Large base landmasses. iterations reduce frequency. beginning scale affects jaggedness
@@ -841,38 +844,38 @@
             if(camX >= w){
                 ccOffsetX += w;
                 camX = 0;
-                drawMap(cc, "right");
+                drawMap(cview, "right");
             }
             if(camX < 0){
                 ccOffsetX -= w;
                 camX = w;
-                drawMap(cc, "left");
+                drawMap(cview, "left");
             }
             if(camY >= h){
                 ccOffsetY += h;
                 camY = 0;
-                drawMap(cc, "down");
+                drawMap(cview, "down");
             }
             if(camY < 0){
                 ccOffsetY -= h;
                 camY = h;
-                drawMap(cc, "up");
+                drawMap(cview, "up");
             }
         }
         
         
         function draw(){
-            var mainCanvas;
-            mainCanvas = zoom ? chunkCanvas : macroCanvas;
+            //var mainCanvas;
+            //mainCanvas = zoom ? chunkCanvas : macroCanvas;
             c.setTransform(1, 0, 0, 1, -Math.floor(camX), -Math.floor(camY));
-            c.drawImage(mainCanvas, 0, 0);
+            c.drawImage(cview.canvas, 0, 0);
             
             c.strokeStyle = "hsl(328, 100%, 67%)";
             c.strokeRect(Math.floor((mouseRelX)/(chunkWidth)) * chunkWidth, Math.floor((mouseRelY)/(chunkHeight)) * chunkHeight, chunkWidth, chunkHeight);
             c.strokeRect(Math.floor((mouseRelX)/(tileWidth)) * tileWidth, Math.floor((mouseRelY)/(tileHeight)) * tileHeight, tileWidth, tileHeight);
             
             
-            c.fillText(getTileAt(mouseTileX, mouseTileY).height, mouseRelX, mouseRelY);
+            //c.fillText(getTileAt(mouseTileX, mouseTileY).height, mouseRelX, mouseRelY);
             c.fillText(mouseTileX + ", " + mouseTileY, mouseRelX, mouseRelY - 20);
             
             
@@ -895,16 +898,20 @@
             
             var canvas = c.canvas;
             var a = 0,
-                boundsLeft   = ((area == "right") ? w : 0),
-                boundsRight  = ((area == "left")  ? w : w * 2),
-                boundsTop    = ((area == "down")  ? h : 0),
-                boundsBottom = ((area == "up")    ? h : h * 2),
-                boundsWidth  = boundsRight - boundsLeft,
-                boundsHeight = boundsBottom - boundsTop;
+                bounds = {};
             
-            c.setTransform(1, 0, 0, 1, -ccOffsetX, -ccOffsetY);
+            bounds.top    = ((area == "down")  ? h : 0);
+            bounds.right  = ((area == "left")  ? w : w * 2);
+            bounds.bottom = ((area == "up")    ? h : h * 2);
+            bounds.left   = ((area == "right") ? w : 0);
+            bounds.width  = bounds.right - bounds.left;
+            bounds.height = bounds.bottom - bounds.top;
+            bounds.offsetX = ccOffsetX;
+            bounds.offsetY = ccOffsetY;
             
-            c.drawImage(canvas, boundsLeft, boundsTop, boundsWidth, boundsHeight, (area == "left" ? w : 0) + ccOffsetX, (area == "up" ? h : 0) + ccOffsetY, boundsWidth, boundsHeight);
+            c.setTransform(1, 0, 0, 1, -bounds.offsetX, -bounds.offsetY);
+            
+            c.drawImage(canvas, bounds.left, bounds.top, bounds.width, bounds.height, (area == "left" ? w : 0) + bounds.offsetX, (area == "up" ? h : 0) + bounds.offsetY, bounds.width, bounds.height);
             //mc.fillRect(0, 0, 4 * scale, 4 * scale)
 
             //if(pressed.includes("ArrowLeft") || pressed.includes("ArrowRight") || pressed.includes("ArrowUp") || pressed.includes("ArrowDown"))
@@ -917,18 +924,18 @@
             //c.fillRect(camXCenter, camYCenter,canvas.width,canvas.height);
             
             
-            d(a);
+            d(c, a, bounds);
             
-            function d(a){
+            function d(c, a, bounds){
                 
-                var checkY = boundsTop + ccOffsetY + Math.floor(a / Math.ceil(boundsWidth / chunkWidth)) * chunkHeight;
+                var checkY = bounds.top + bounds.offsetY + Math.floor(a / Math.ceil(bounds.width / (chunkWidth/* * scale / 6*/))) * (chunkHeight/* * scale / 6*/);
                 
-                if(Math.floor((checkY - ccOffsetY) / chunkHeight) * chunkHeight > boundsBottom){ //there's a better way to check this. something with ceil boundsheight / chunkheight
+                if(Math.floor((checkY - bounds.offsetY) / (chunkHeight/* * scale / 6*/)) * (chunkHeight/* * scale / 6*/) > bounds.bottom){ //there's a better way to check this. something with ceil boundsheight / chunkheight
                     return;
                 }
-                var checkX = boundsLeft + ccOffsetX + (a % Math.ceil(boundsWidth / chunkWidth)) * chunkWidth;
-                var cx = Math.floor(checkX / chunkWidth),
-                    cy = Math.floor(checkY / chunkHeight);
+                var checkX = bounds.left + bounds.offsetX + (a % Math.ceil(bounds.width / (chunkWidth/* * scale / 6*/))) * (chunkWidth/* * scale / 6*/);
+                var cx = Math.floor(checkX / (chunkWidth/* * scale / 6*/)),
+                    cy = Math.floor(checkY / (chunkHeight/* * scale / 6*/));
                 
                 var chunk;
                 if(!(chunk = getChunkAt(cx, cy))){
@@ -936,14 +943,14 @@
                     fillTris(chunk);
                 }
                 
-                drawChunk(chunk);
+                drawChunk(c, chunk);
                 
                 requestAnimationFrame(function(){
-                    d(++a);
+                    d(c, ++a, bounds);
                 })
             }
             
-            function drawChunk(chunk){
+            function drawChunk(c, chunk){
                 var chunkX = chunk.x * chunkWidth;
                 var chunkY = chunk.y * chunkHeight;
 
@@ -956,37 +963,39 @@
                     for(var i = 0; i < chunk.map.length; i+=resolution){
                         for(var j = 0; j < chunk.map[0].length; j+=resolution){
                             var tile = chunk.map[i][j];
-                            var tileX = tile.x * (tileWidth / resolution);
-                            var tileY = tile.y * (tileHeight / resolution);
+                            var tw = tileWidth * resolution/* * scale / 6*/,
+                                th = tileHeight * resolution/* * scale / 6*/;
+                            var tileX = tile.x * (tileWidth/* * scale / 6*/);
+                            var tileY = tile.y * (tileHeight/* * scale / 6*/);
                             //if(tileX > camXCenter && tileX < camX + canvas.width / 2 && tileY > camYCenter && tileY < camY + canvas.height / 2){
                             c.fillStyle = tile.bgColor;
-                            c.fillRect(tileX, tileY, tileWidth, tileHeight)
+                            c.fillRect(tileX, tileY, tw, th)
                             c.fillStyle = tile.color;
                             if(tile.dir == 0){
-                                c.fillRect(tileX, tileY, tileWidth, tileHeight)
+                                c.fillRect(tileX, tileY, tw, th)
                             } else if(tile.dir == 1) {
                                 c.beginPath();
                                 c.moveTo(tileX, tileY);
-                                c.lineTo(tileX + tileWidth, tileY + tileHeight);
-                                c.lineTo(tileX, tileY + tileHeight);
+                                c.lineTo(tileX + tw, tileY + th);
+                                c.lineTo(tileX, tileY + th);
                                 c.fill();
                             } else if(tile.dir == 2) {
                                 c.beginPath();
                                 c.moveTo(tileX, tileY);
-                                c.lineTo(tileX + tileWidth, tileY);
-                                c.lineTo(tileX, tileY + tileHeight);
+                                c.lineTo(tileX + tw, tileY);
+                                c.lineTo(tileX, tileY + th);
                                 c.fill();
                             } else if(tile.dir == 3) {
                                 c.beginPath();
                                 c.moveTo(tileX, tileY);
-                                c.lineTo(tileX + tileWidth, tileY);
-                                c.lineTo(tileX + tileWidth, tileY + tileHeight);
+                                c.lineTo(tileX + tw, tileY);
+                                c.lineTo(tileX + tw, tileY + th);
                                 c.fill();
                             } else if(tile.dir == 4) {
                                 c.beginPath();
-                                c.moveTo(tileX + tileWidth, tileY);
-                                c.lineTo(tileX + tileWidth, tileY + tileHeight);
-                                c.lineTo(tileX, tileY + tileHeight);
+                                c.moveTo(tileX + tw, tileY);
+                                c.lineTo(tileX + tw, tileY + th);
+                                c.lineTo(tileX, tileY + th);
                                 c.fill();
                             } 
                             //}
@@ -1021,15 +1030,20 @@
             seed3 = 855;
             seed4 = 1334;*/
             
-            seed1 = 1157;
+            /*seed1 = 1157;
             seed2 = 1251;
             seed3 = 403;
-            seed4 = 341;
+            seed4 = 341;*/
             
             /*seed1 = 1379;
             seed2 = 1390;
             seed3 = 676;
             seed4 = 1266;*/
+            
+            /*seed1 = 1039;
+            seed2 = 411;
+            seed3 = 1301;
+            seed4 = 342;*/
             
             noise.seed(seed1);
             
@@ -1052,12 +1066,9 @@
             macroCanvas.width = w * 2 + edgeMargin * 2;
             macroCanvas.height = h * 2 + edgeMargin * 2;
             mc = macroCanvas.getContext('2d');
-            drawMap(mc);*/
+            //drawMap(mc);*/
             
             //create chunk map
-            scale = 6;
-            resolution = 1;
-            updateVars();
             
             chunkCanvas = document.createElement('canvas');
             //chunkCanvas.width = a*chunkWidth;
@@ -1065,6 +1076,7 @@
             chunkCanvas.width = w * 2 + edgeMargin * 2;
             chunkCanvas.height = h * 2 + edgeMargin * 2;
             cc = chunkCanvas.getContext('2d');
+            cview = cc;
             drawMap(cc);
             
             step();
@@ -1090,7 +1102,7 @@
         
         function mouseDown(e) {
             //floodFill(mouseTileX, mouseTileY)
-            //chunkZoom(getChunkAtTile(mouseTileX, mouseTileY));
+            chunkZoom(getChunkAtTile(mouseTileX, mouseTileY));
         }
         
         function keyDown(e) {
