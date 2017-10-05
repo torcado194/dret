@@ -126,16 +126,16 @@
                 resolution = 2;
                 updateVars()
             }
-            camX = chunk.x * chunkWidth + (chunkWidth / 2) - w / 2;
-            camY = chunk.y * chunkHeight + (chunkHeight / 2) - h / 2;
-            ccOffsetX = 0;
-            ccOffsetY = 0;
+            ccOffsetX = Math.floor((chunk.x * chunkWidth + (chunkWidth / 2) - w / 2) / chunkWidth) * chunkWidth;
+            ccOffsetY = Math.floor((chunk.y * chunkHeight + (chunkHeight / 2) - h / 2) / chunkHeight) * chunkHeight;
+            camX = ccOffsetX % w;
+            camY = ccOffsetY % h;
             updateMouse();
-            drawMap(cview);
+            drawMap(cview, "full", chunk);
         }
         
         function generateChunk(x,y){
-            var chunk = new Chunk(x, y, "#6dd853", 0);
+            var chunk = getChunkAt(x,y) || new Chunk(x, y, "#6dd853", 0);
             chunks.push(chunk);
             return chunk;
         }
@@ -276,14 +276,14 @@
             if(biome1 == 1 && biome2 == 3) biome = 6; //tundra
             if(biome1 == 2 && biome2 == 1) biome = 3; //forest
             if(biome1 == 2 && biome2 == 2) biome = 4; //planes
-            if(biome1 == 2 && biome2 == 3) biome = 5; //desert
+            if(biome1 == 2 && biome2 == 3) biome = 5; //arctic
             if(biome1 == 3 && biome2 == 1) biome = 6; //tundra
-            if(biome1 == 3 && biome2 == 2) biome = 7; //arctic
+            if(biome1 == 3 && biome2 == 2) biome = 7; //desert
             if(biome1 == 3 && biome2 == 3) biome = 8; //meteor
             
             if(biome == 0 && a < 0.53) biome = 2; //shore lake -> swamp
-            //if(!(biome == 0 || biome == 2 || biome == 7) && a < 0.3) biome = 7; //shore land -> desert
-            if(biome == 8 && a < 0.55) biome = 7; //shore land -> desert
+            if(!(biome == 0 || biome == 2 || biome == 7) && a <= 0.366) biome = 7; //shore land -> desert
+            if(biome == 8 && a < 0.55) biome = 7; //shore meteor -> desert
             //if(biome == 8 && a > 0.71) biome = 2; //mountain meteor -> lava?
             if(biome == 0 && a > 0.66) biome = 1; //high lake -> jungle?
             if((biome == 6 || biome == 5) && a > 0.77) biome = 9; //high tundra/desert -> lava (basalt?)
@@ -308,7 +308,7 @@
             a = a + amp((c + biomeBase) * Math.min(1, clamp), 0.8) * 100;*/
             
             
-            return {height:  Math.round(Math.min(1,Math.max(0,a)) * 8) / 8, biome: biome};
+            return {height:  Math.round(Math.min(1,Math.max(0,a)) * 10) / 10, biome: biome};
         }
 
         function amp(x,v){
@@ -446,60 +446,77 @@
             var colors = [
                 [ //lagoon
                     [207, 0.72, 0.38],
+                    [199, 0.84, 0.57],
                     [215, 0.88, 0.52],
                     [206, 0.88, 0.56],
                     [193, 0.88, 0.58]
                 ],
                 [ //jungle
                     [207, 0.72, 0.38],
+                    [199, 0.84, 0.57],
                     [100, 0.47, 0.35],
                     [ 84, 0.38, 0.46],
                     [ 68, 0.46, 0.58]
                 ],
-                [ //slough
+                /*[ //slough
                     [207, 0.72, 0.38],
+                    [215, 0.43, 0.51],
                     [222, 0.10, 0.38],
                     [251, 0.09, 0.52],
                     [267, 0.15, 0.63]
+                ],*/
+                [ //slough
+                    [207, 0.72, 0.38],
+                    [215, 0.43, 0.51],
+                    [159, 0.33, 0.33],
+                    [154, 0.35, 0.37],
+                    [150, 0.37, 0.39]
                 ],
                 [ //forest
                     [207, 0.72, 0.38],
+                    [199, 0.84, 0.57],
                     [131, 0.41, 0.42],
                     [ 99, 0.36, 0.54],
                     [ 67, 0.54, 0.64]
                 ],
                 [ //planes
                     [207, 0.72, 0.38],
+                    [199, 0.84, 0.57],
                     [131, 0.54, 0.42],
                     [ 84, 0.50, 0.52],
                     [ 54, 0.45, 0.66]
                 ],
                 [ //arctic
                     [207, 0.72, 0.38],
+                    [199, 0.84, 0.57],
                     [218, 0.32, 0.69],
                     [218, 0.31, 0.88],
                     [218, 0.87, 1.00]
                 ],
                 [ //tundra
                     [207, 0.72, 0.38],
+                    [199, 0.84, 0.57],
                     [ 84, 0.42, 0.42],
                     [ 59, 0.48, 0.54],
                     [ 64, 0.59, 0.68]
                 ],
                 [ //desert
                     [207, 0.72, 0.38],
+                    [199, 0.84, 0.57],
                     [ 42, 0.41, 0.58],
                     [ 53, 0.60, 0.72],
                     [ 58, 0.87, 0.85]
                 ],
                 [ //meteor
                     [207, 0.72, 0.38],
+                    [199, 0.84, 0.57],
                     [260, 0.20, 0.45],
                     [296, 0.58, 0.76],
                     [336, 0.75, 0.86]
                 ],
                 [ //basalt
                     [207, 0.72, 0.38],
+                    [199, 0.84, 0.57],
                     [351, 1.00, 0.27],
                     [351, 1.00, 0.27],
                     [359, 0.83, 0.46]
@@ -508,6 +525,7 @@
                 positions = [
                     0,
                     0.25,
+                    0.2501,
                     0.75,
                     1
                 ];
@@ -842,24 +860,32 @@
             camYCenter = camY + h / 2;
             
             if(camX >= w){
-                ccOffsetX += w;
                 camX = 0;
-                drawMap(cview, "right");
+                ccOffsetX += w;
+                let cx = Math.floor((ccOffsetX + (w) + (chunkWidth / 2)) / chunkWidth),
+                    cy = Math.floor((ccOffsetY + (camYCenter)) / chunkHeight);
+                drawMap(cview, "right",  generateChunk(cx, cy));
             }
             if(camX < 0){
-                ccOffsetX -= w;
                 camX = w;
-                drawMap(cview, "left");
+                ccOffsetX -= w;
+                let cx = Math.floor((ccOffsetX + (w) - (chunkWidth / 2)) / chunkWidth),
+                    cy = Math.floor((ccOffsetY + (camYCenter)) / chunkHeight);
+                drawMap(cview, "left",  generateChunk(cx, cy));
             }
             if(camY >= h){
-                ccOffsetY += h;
                 camY = 0;
-                drawMap(cview, "down");
+                ccOffsetY += h;
+                let cx = Math.floor((ccOffsetX + (camXCenter)) / chunkWidth),
+                    cy = Math.floor((ccOffsetY + (h) + (chunkHeight / 2)) / chunkHeight);
+                drawMap(cview, "down", generateChunk(cx, cy));
             }
             if(camY < 0){
-                ccOffsetY -= h;
                 camY = h;
-                drawMap(cview, "up");
+                ccOffsetY -= h;
+                let cx = Math.floor((ccOffsetX + (camXCenter)) / chunkWidth),
+                    cy = Math.floor((ccOffsetY + (h) - (chunkHeight / 2)) / chunkHeight);
+                drawMap(cview, "up",  generateChunk(cx, cy));
             }
         }
         
@@ -875,7 +901,7 @@
             c.strokeRect(Math.floor((mouseRelX)/(tileWidth)) * tileWidth, Math.floor((mouseRelY)/(tileHeight)) * tileHeight, tileWidth, tileHeight);
             
             
-            //c.fillText(getTileAt(mouseTileX, mouseTileY).height, mouseRelX, mouseRelY);
+            c.fillText(getTileAt(mouseTileX, mouseTileY).height, mouseRelX, mouseRelY);
             c.fillText(mouseTileX + ", " + mouseTileY, mouseRelX, mouseRelY - 20);
             
             
@@ -888,17 +914,14 @@
                 c.stroke(landmasses[i].outline);
             }
             c.restore();
-            
-            
-            c.strokeStyle = "hsl(46, 96%, 54%)";
-            c.strokeRect(camX,camY,w,h);
         }
         
-        function drawMap(c, area = "full"){
+        function drawMap(c, area = "full", startChunk = false){
             
             var canvas = c.canvas;
             var a = 0,
-                bounds = {};
+                bounds = {},
+                vars = {};
             
             bounds.top    = ((area == "down")  ? h : 0);
             bounds.right  = ((area == "left")  ? w : w * 2);
@@ -908,6 +931,13 @@
             bounds.height = bounds.bottom - bounds.top;
             bounds.offsetX = ccOffsetX;
             bounds.offsetY = ccOffsetY;
+            
+            vars.scale = scale;
+            vars.resolution = resolution;
+            vars.chunkWidth = chunkWidth;
+            vars.chunkHeight = chunkHeight;
+            vars.tileWidth = tileWidth;
+            vars.tileHeight = tileHeight;
             
             c.setTransform(1, 0, 0, 1, -bounds.offsetX, -bounds.offsetY);
             
@@ -923,36 +953,72 @@
             //c.fillStyle = "#7FC6FF";
             //c.fillRect(camXCenter, camYCenter,canvas.width,canvas.height);
             
+            var startX = 0,
+                startY = 0;
             
-            d(c, a, bounds);
-            
-            function d(c, a, bounds){
-                
-                var checkY = bounds.top + bounds.offsetY + Math.floor(a / Math.ceil(bounds.width / (chunkWidth/* * scale / 6*/))) * (chunkHeight/* * scale / 6*/);
-                
-                if(Math.floor((checkY - bounds.offsetY) / (chunkHeight/* * scale / 6*/)) * (chunkHeight/* * scale / 6*/) > bounds.bottom){ //there's a better way to check this. something with ceil boundsheight / chunkheight
-                    return;
-                }
-                var checkX = bounds.left + bounds.offsetX + (a % Math.ceil(bounds.width / (chunkWidth/* * scale / 6*/))) * (chunkWidth/* * scale / 6*/);
-                var cx = Math.floor(checkX / (chunkWidth/* * scale / 6*/)),
-                    cy = Math.floor(checkY / (chunkHeight/* * scale / 6*/));
-                
-                var chunk;
-                if(!(chunk = getChunkAt(cx, cy))){
-                    chunk = generateChunk(cx, cy);
-                    fillTris(chunk);
+                if(startChunk){
+                    startX = startChunk.x;
+                    startY = startChunk.y;
+                } else {
+                    startX = Math.floor((bounds.left + bounds.offsetX) / vars.chunkWidth);
+                    startY = Math.floor((bounds.top + bounds.offsetY) / vars.chunkHeight);
                 }
                 
-                drawChunk(c, chunk);
+            
+            search(c, a, startX, startY, bounds, vars);
+            
+            function search(c, a, startX, startY, bounds, vars){
+                var list = [];
                 
-                requestAnimationFrame(function(){
-                    d(c, ++a, bounds);
-                })
+                var checkX = 0,
+                    checkY = 0,
+                    cx = 0,
+                    cy = 0,
+                    d = 0,
+                    i = 0;
+                //debugger;
+                while(true){
+                    checkY = Math.floor(((bounds.top + bounds.offsetY) / vars.chunkHeight) + Math.floor(i / Math.ceil(bounds.width / (vars.chunkWidth))));
+                    if(checkY > Math.floor((bounds.bottom + bounds.offsetY) / vars.chunkHeight) + 1){
+                        break;
+                    }
+                    checkX = Math.floor(((bounds.left + bounds.offsetX) / vars.chunkWidth) + (i % Math.ceil(bounds.width / (chunkWidth))));
+                    d = Math.hypot(checkX - startX, checkY - startY);
+                    list.push({x:checkX,y:checkY,d:d});
+                    i++;
+                }
+                
+                list.sort(function(a,b){
+                    return a.d - b.d;
+                });
+                
+                render(c, a, bounds, vars, list);
+                
+                function render(c, a, bounds, vars, list){
+                    var chunk,
+                        cx = list[a].x,
+                        cy = list[a].y;
+                    
+                    if(!(chunk = getChunkAt(cx, cy))){
+                        chunk = generateChunk(cx, cy);
+                        fillTris(chunk);
+                    }
+
+                    drawChunk(c, chunk, vars);
+
+                    if(++a < list.length){
+                        requestAnimationFrame(function(){
+                            render(c, a, bounds, vars, list);
+                        })
+                    }
+                }
+                
             }
             
-            function drawChunk(c, chunk){
-                var chunkX = chunk.x * chunkWidth;
-                var chunkY = chunk.y * chunkHeight;
+            
+            function drawChunk(c, chunk, vars){
+                var chunkX = chunk.x * vars.chunkWidth;
+                var chunkY = chunk.y * vars.chunkHeight;
 
                 //if((chunkX + chunkWidth - ccOffsetX > boundsLeft && chunkX - ccOffsetX < boundsRight && chunkY + chunkHeight - ccOffsetY > boundsTop && chunkY - ccOffsetY < boundsBottom)){
 
@@ -960,13 +1026,13 @@
                     //    continue;
                     //mc.fillStyle = chunk.color;
                     //mc.fillRect(chunkX, chunkY, chunkWidth, chunkHeight)
-                    for(var i = 0; i < chunk.map.length; i+=resolution){
-                        for(var j = 0; j < chunk.map[0].length; j+=resolution){
+                    for(var i = 0; i < chunk.map.length; i+=vars.resolution){
+                        for(var j = 0; j < chunk.map[0].length; j+=vars.resolution){
                             var tile = chunk.map[i][j];
-                            var tw = tileWidth * resolution/* * scale / 6*/,
-                                th = tileHeight * resolution/* * scale / 6*/;
-                            var tileX = tile.x * (tileWidth/* * scale / 6*/);
-                            var tileY = tile.y * (tileHeight/* * scale / 6*/);
+                            var tw = vars.tileWidth * vars.resolution,
+                                th = vars.tileHeight * vars.resolution;
+                            var tileX = tile.x * (vars.tileWidth);
+                            var tileY = tile.y * (vars.tileHeight);
                             //if(tileX > camXCenter && tileX < camX + canvas.width / 2 && tileY > camYCenter && tileY < camY + canvas.height / 2){
                             c.fillStyle = tile.bgColor;
                             c.fillRect(tileX, tileY, tw, th)
@@ -1096,8 +1162,8 @@
             mouseY = e.clientY;
             mouseRelX = mouseX + camX;
             mouseRelY = mouseY + camY;
-            mouseTileX = Math.floor(mouseRelX / tileWidth);
-            mouseTileY = Math.floor(mouseRelY / tileHeight);
+            mouseTileX = Math.floor((mouseRelX + ccOffsetX) / tileWidth);
+            mouseTileY = Math.floor((mouseRelY + ccOffsetY) / tileHeight);
         }
         
         function mouseDown(e) {
