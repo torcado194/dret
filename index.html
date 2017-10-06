@@ -20,12 +20,155 @@
         <script src='/code/perlin.js'></script>
         <link rel="stylesheet" type="text/css" href="/reset.css">
         <!--        <link rel="stylesheet" href="/style.css">-->
+        <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,500,700|Roboto+Slab:400,700|Roboto:300,400,500&effect=outline" rel="stylesheet">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <link rel="shortcut icon" href="/favicon.ico"/>
     </head>
     <body>
-        <canvas id="canvas"></canvas>
+        <div id="gameArea">
+            <div id="dashboard">
+                <div class="item" item="wood">
+                    <div class="bg"></div>
+                    <div class="icon"></div>
+                    <div class="count">1.6k</div>
+                </div>
+                <div class="item" item="foliage">
+                    <div class="bg"></div>
+                    <div class="icon"></div>
+                    <div class="count">81k</div>
+                </div>
+                <div class="item" item="stone">
+                    <div class="bg"></div>
+                    <div class="icon"></div>
+                    <div class="count">73m</div>
+                </div>
+                <div class="item" item="grass">
+                    <div class="bg"></div>
+                    <div class="icon"></div>
+                    <div class="count">446</div>
+                </div>
+                <div class="item" item="straw">
+                    <div class="bg"></div>
+                    <div class="icon"></div>
+                    <div class="count">9,250</div>
+                </div>
+                <div class="item" item="apple">
+                    <div class="bg"></div>
+                    <div class="icon"></div>
+                    <div class="count">0.1</div>
+                </div>
+            </div>
+            <canvas id="canvas"></canvas>
+        </div>
     </body>
+    <style>
+        @keyframes wobble{
+            0%{
+                transform: scale(0.8, 1.2);
+            }
+            50%{
+                transform: scale(1.08, 0.92);
+            }
+            100%{
+                transform: scale(1, 1);
+            }
+        }
+        
+        html{
+            height: 100%;
+        }
+        body{
+            height: 100%;
+            overflow: hidden;
+        }
+        #gameArea{
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+        #dashboard{
+            width: 512px;
+            height: 100%;
+            padding: 0 8px;
+            background-color: firebrick;
+            flex-grow: 0;
+            background-image: url(image/dashMiddle.png);
+            background-repeat: repeat-y;
+            border-image: url(image/dashBorder.png);
+            border-width: 8px;
+            border-style: solid;
+            border-image-width: 8px;
+            border-image-slice: 8;
+            box-sizing: border-box;
+            border-left-width: 0px;
+            border-right-width: 0;
+            flex: 0 0 512px;
+            display: flex;
+        }
+        #canvas{
+            height: 100%;
+            background-color: aqua;
+            flex-grow: 1;
+        }
+        
+        .item{
+            width: 64px;
+            height: 64px;
+            position: relative;
+            margin: 8px;
+            user-select: none;
+            cursor: pointer;
+        }
+        .item .bg{
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            background-image: url(image/ui.png);
+            background-position: 0px 0px;
+        }
+        .item .icon{
+            width: 64px;
+            height: 64px;
+            position: absolute;
+            background-image: url(image/items.png);
+            background-position: 0px 0px;
+            animation-play-state: running;
+        }
+        .item .count{
+            width: 100%;
+            height: 16px;
+            position: absolute;
+            text-align: right;
+            bottom: 0;
+            color: #FFF;
+            font-family: 'Roboto', monospace;
+            font-weight: 700;
+            text-shadow: 0 1px 1px #000, 0 -1px 1px #000, 1px 0 1px #000, -1px 0 1px #000, 1px 1px 2px #000, 1px -1px 2px #000, -1px -1px 2px #000, -1px 1px 2px #000;
+        }
+        
+        .item[item="wood"] .icon{
+            background-position: 0px 0px;
+        }
+        .item[item="foliage"] .icon{
+            background-position: -64px 0px;
+        }
+        .item[item="stone"] .icon{
+            background-position: -128px 0px;
+        }
+        .item[item="grass"] .icon{
+            background-position: -192px 0px;
+        }
+        .item[item="straw"] .icon{
+            background-position: -256px 0px;
+        }
+        .item[item="apple"] .icon{
+            background-position: -320px 0px;
+        }
+        
+        .wobble{
+            animation: wobble 0.25s;
+        }
+    </style>
     <script>
         
         //Global vars
@@ -52,6 +195,8 @@
             tileHeight = tileBaseHeight * scale,
             w = 0,
             h = 0,
+            canvasX = 0,
+            canvasY = 0,
             edgeMargin = 0,
             camX = 0,
             camY = 0,
@@ -115,16 +260,21 @@
             drawMap(cview);
         }
         
-        function chunkZoom(chunk){
+        function chunkZoom(chunk, zoomIn){
+            if(zoomIn !== undefined){
+                if(zoomIn == zoom){
+                    return;
+                }
+            }
             zoom = !zoom;
             if(zoom){
                 scale = 6;
                 resolution = 1;
-                updateVars()
+                updateVars();
             } else {
                 scale = 1;
                 resolution = 2;
-                updateVars()
+                updateVars();
             }
             ccOffsetX = Math.floor((chunk.x * chunkWidth + (chunkWidth / 2) - w / 2) / chunkWidth) * chunkWidth;
             ccOffsetY = Math.floor((chunk.y * chunkHeight + (chunkHeight / 2) - h / 2) / chunkHeight) * chunkHeight;
@@ -1076,8 +1226,12 @@
         function init(){
             canvas = document.getElementById("canvas");
             c = canvas.getContext('2d');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            //canvas.width = window.innerWidth;
+            //canvas.height = window.innerHeight;
+            canvas.width = $("#canvas").width();
+            canvas.height = $("#canvas").height();
+            canvasX = $("#canvas").offset().left;
+            canvasY = $("#canvas").offset().top;
             w = canvas.width;
             h = canvas.height;
             
@@ -1152,14 +1306,16 @@
         
         
         //Event handlers
+        document.addEventListener("DOMMouseScroll", mouseWheel, false);
+        document.addEventListener("mousewheel", mouseWheel, false);
         document.addEventListener("mousemove", mouseMove, false);
         document.addEventListener("mousedown", mouseDown, false);
         document.addEventListener("keydown", keyDown, false);
         document.addEventListener("keyup", keyUp, false);
         
         function mouseMove(e) {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
+            mouseX = e.clientX - canvasX;
+            mouseY = e.clientY - canvasY;
             mouseRelX = mouseX + camX;
             mouseRelY = mouseY + camY;
             mouseTileX = Math.floor((mouseRelX + ccOffsetX) / tileWidth);
@@ -1168,7 +1324,12 @@
         
         function mouseDown(e) {
             //floodFill(mouseTileX, mouseTileY)
-            chunkZoom(getChunkAtTile(mouseTileX, mouseTileY));
+            //chunkZoom(getChunkAtTile(mouseTileX, mouseTileY));
+        }
+        
+        function mouseWheel(e) {
+            //floodFill(mouseTileX, mouseTileY)
+            chunkZoom(getChunkAtTile(mouseTileX, mouseTileY), e.deltaY < 0);
         }
         
         function keyDown(e) {
@@ -1183,10 +1344,14 @@
             };
         }
         
+        
+        $('.item').click(function(){
+            var target = $(".icon", this)
+            target.removeClass('wobble');
+            setTimeout(function(){
+                target.addClass('wobble');
+            },50)
+        });
+        
     </script>
-    <style>
-        body {
-            overflow: hidden;
-        }
-    </style>
 </html>
