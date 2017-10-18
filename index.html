@@ -178,7 +178,11 @@
             mc,
             chunkCanvas,
             cc,
-            cview;
+            cview,
+            tempMacroCanvas,
+            tmc,
+            tempChunkCanvas,
+            tcc;
         
         var scale = 6,
             resolution = 1,
@@ -249,7 +253,7 @@
             mouseTileY = Math.floor((mouseRelY + ccOffsetY) / tileHeight);
         }
         
-        function toggleZoom(){
+        /*function toggleZoom(){
             zoom = !zoom;
             if(zoom){
                 scale = 6;
@@ -260,7 +264,7 @@
             }
             updateMouse();
             drawMap(cview);
-        }
+        }*/
         
         function chunkZoom(chunk, zoomIn){
             if(zoomIn !== undefined){
@@ -275,12 +279,14 @@
                 updateVars();
                 camX = ccOffsetX % w;
                 camY = ccOffsetY % h;
+                cview = cc;
             } else {
                 scale = 1;
                 resolution = 2;
                 updateVars();
                 camX = (ccOffsetX % w) - w;
                 camY = (ccOffsetY % h) - h;
+                cview = mc;
             }
             ccOffsetX = (chunk.x * chunkWidth + (chunkWidth / 2) - w / 2); 
             ccOffsetY = (chunk.y * chunkHeight + (chunkHeight / 2) - h / 2);
@@ -293,6 +299,131 @@
             var chunk = getChunkAt(x,y) || new Chunk(x, y, "#6dd853", 0);
             chunks.push(chunk);
             return chunk;
+        }
+        
+        function generateChunkImages(chunk){
+            fillTris(chunk);
+            
+            var vars = {};
+            //macro
+            vars.scale = 1;
+            vars.resolution = 2;
+            vars.chunkWidth = chunkBaseWidth * vars.scale;
+            vars.chunkHeight = chunkBaseHeight * vars.scale;
+            vars.tileWidth = tileBaseWidth * vars.scale;
+            vars.tileHeight = tileBaseHeight * vars.scale;
+            
+            
+            chunk.macroRender = document.createElement('canvas');
+            chunk.macroRender.width = vars.chunkWidth;
+            chunk.macroRender.height = vars.chunkHeight;
+            chunk.mr = chunk.macroRender.getContext('2d');
+                
+                
+            var c = chunk.mr;
+            
+            
+            for(var i = 0; i < chunk.map.length; i+=vars.resolution){
+                for(var j = 0; j < chunk.map[0].length; j+=vars.resolution){
+                    var tile = chunk.map[i][j];
+                    var tw = vars.tileWidth * vars.resolution,
+                        th = vars.tileHeight * vars.resolution;
+                    var tileX = tile.relX * (vars.tileWidth);
+                    var tileY = tile.relY * (vars.tileHeight);
+                    c.fillStyle = tile.bgColor;
+                    c.fillRect(tileX, tileY, tw, th)
+                    c.fillStyle = tile.color;
+                    if(tile.dir == 0){
+                        c.fillRect(tileX, tileY, tw, th)
+                    } else if(tile.dir == 1) {
+                        c.beginPath();
+                        c.moveTo(tileX, tileY);
+                        c.lineTo(tileX + tw, tileY + th);
+                        c.lineTo(tileX, tileY + th);
+                        c.fill();
+                    } else if(tile.dir == 2) {
+                        c.beginPath();
+                        c.moveTo(tileX, tileY);
+                        c.lineTo(tileX + tw, tileY);
+                        c.lineTo(tileX, tileY + th);
+                        c.fill();
+                    } else if(tile.dir == 3) {
+                        c.beginPath();
+                        c.moveTo(tileX, tileY);
+                        c.lineTo(tileX + tw, tileY);
+                        c.lineTo(tileX + tw, tileY + th);
+                        c.fill();
+                    } else if(tile.dir == 4) {
+                        c.beginPath();
+                        c.moveTo(tileX + tw, tileY);
+                        c.lineTo(tileX + tw, tileY + th);
+                        c.lineTo(tileX, tileY + th);
+                        c.fill();
+                    } 
+                }
+            }
+            
+            //chunk.macroRender = c.canvas.toDataURL();
+            
+            //chunk
+            
+            vars.scale = 6;
+            vars.resolution = 1;
+            vars.chunkWidth = chunkBaseWidth * vars.scale;
+            vars.chunkHeight = chunkBaseHeight * vars.scale;
+            vars.tileWidth = tileBaseWidth * vars.scale;
+            vars.tileHeight = tileBaseHeight * vars.scale;
+
+
+            chunk.chunkRender = document.createElement('canvas');
+            chunk.chunkRender.width = vars.chunkWidth;
+            chunk.chunkRender.height = vars.chunkHeight;
+            chunk.cr = chunk.chunkRender.getContext('2d');
+
+
+            var c = chunk.cr;
+
+            for(var i = 0; i < chunk.map.length; i+=vars.resolution){
+                for(var j = 0; j < chunk.map[0].length; j+=vars.resolution){
+                    var tile = chunk.map[i][j];
+                    var tw = vars.tileWidth * vars.resolution,
+                        th = vars.tileHeight * vars.resolution;
+                    var tileX = tile.relX * (vars.tileWidth);
+                    var tileY = tile.relY * (vars.tileHeight);
+                    c.fillStyle = tile.bgColor;
+                    c.fillRect(tileX, tileY, tw, th)
+                    c.fillStyle = tile.color;
+                    if(tile.dir == 0){
+                        c.fillRect(tileX, tileY, tw, th)
+                    } else if(tile.dir == 1) {
+                        c.beginPath();
+                        c.moveTo(tileX, tileY);
+                        c.lineTo(tileX + tw, tileY + th);
+                        c.lineTo(tileX, tileY + th);
+                        c.fill();
+                    } else if(tile.dir == 2) {
+                        c.beginPath();
+                        c.moveTo(tileX, tileY);
+                        c.lineTo(tileX + tw, tileY);
+                        c.lineTo(tileX, tileY + th);
+                        c.fill();
+                    } else if(tile.dir == 3) {
+                        c.beginPath();
+                        c.moveTo(tileX, tileY);
+                        c.lineTo(tileX + tw, tileY);
+                        c.lineTo(tileX + tw, tileY + th);
+                        c.fill();
+                    } else if(tile.dir == 4) {
+                        c.beginPath();
+                        c.moveTo(tileX + tw, tileY);
+                        c.lineTo(tileX + tw, tileY + th);
+                        c.lineTo(tileX, tileY + th);
+                        c.fill();
+                    } 
+                }
+            }
+
+            //chunk.chunkRender = c.canvas.toDataURL();
         }
         
         function createMap(chunk){
@@ -1159,7 +1290,7 @@
                     
                     if(!(chunk = getChunkAt(cx, cy))){
                         chunk = generateChunk(cx, cy);
-                        fillTris(chunk);
+                        //fillTris(chunk);
                     }
 
                     drawChunk(c, chunk, vars);
@@ -1180,57 +1311,58 @@
             
             
             function drawChunk(c, chunk, vars){
-                var chunkX = chunk.x * vars.chunkWidth;
-                var chunkY = chunk.y * vars.chunkHeight;
-
-                //if((chunkX + chunkWidth - ccOffsetX > boundsLeft && chunkX - ccOffsetX < boundsRight && chunkY + chunkHeight - ccOffsetY > boundsTop && chunkY - ccOffsetY < boundsBottom)){
-
-                    //if(!(chunkX > camXCenter && chunkX < camX + canvas.width / 2 && chunkY > camYCenter && chunkY < camY + canvas.height / 2))
-                    //    continue;
-                    //mc.fillStyle = chunk.color;
-                    //mc.fillRect(chunkX, chunkY, chunkWidth, chunkHeight)
-                    for(var i = 0; i < chunk.map.length; i+=vars.resolution){
-                        for(var j = 0; j < chunk.map[0].length; j+=vars.resolution){
-                            var tile = chunk.map[i][j];
-                            var tw = vars.tileWidth * vars.resolution,
-                                th = vars.tileHeight * vars.resolution;
-                            var tileX = tile.x * (vars.tileWidth);
-                            var tileY = tile.y * (vars.tileHeight);
-                            //if(tileX > camXCenter && tileX < camX + canvas.width / 2 && tileY > camYCenter && tileY < camY + canvas.height / 2){
-                            c.fillStyle = tile.bgColor;
+                
+                if(!chunk.chunkRender){
+                    generateChunkImages(chunk);
+                }
+                
+                //var img = new Image;
+                //img.src = vars.resolution == 2 ? chunk.macroRender : chunk.chunkRender;
+                
+                c.drawImage(vars.resolution == 2 ? chunk.macroRender : chunk.chunkRender, chunk.x * vars.chunkWidth, chunk.y * vars.chunkHeight);
+                
+                
+                /*for(var i = 0; i < chunk.map.length; i+=vars.resolution){
+                    for(var j = 0; j < chunk.map[0].length; j+=vars.resolution){
+                        var tile = chunk.map[i][j];
+                        var tw = vars.tileWidth * vars.resolution,
+                            th = vars.tileHeight * vars.resolution;
+                        var tileX = tile.x * (vars.tileWidth);
+                        var tileY = tile.y * (vars.tileHeight);
+                        //if(tileX > camXCenter && tileX < camX + canvas.width / 2 && tileY > camYCenter && tileY < camY + canvas.height / 2){
+                        c.fillStyle = tile.bgColor;
+                        c.fillRect(tileX, tileY, tw, th)
+                        c.fillStyle = tile.color;
+                        if(tile.dir == 0){
                             c.fillRect(tileX, tileY, tw, th)
-                            c.fillStyle = tile.color;
-                            if(tile.dir == 0){
-                                c.fillRect(tileX, tileY, tw, th)
-                            } else if(tile.dir == 1) {
-                                c.beginPath();
-                                c.moveTo(tileX, tileY);
-                                c.lineTo(tileX + tw, tileY + th);
-                                c.lineTo(tileX, tileY + th);
-                                c.fill();
-                            } else if(tile.dir == 2) {
-                                c.beginPath();
-                                c.moveTo(tileX, tileY);
-                                c.lineTo(tileX + tw, tileY);
-                                c.lineTo(tileX, tileY + th);
-                                c.fill();
-                            } else if(tile.dir == 3) {
-                                c.beginPath();
-                                c.moveTo(tileX, tileY);
-                                c.lineTo(tileX + tw, tileY);
-                                c.lineTo(tileX + tw, tileY + th);
-                                c.fill();
-                            } else if(tile.dir == 4) {
-                                c.beginPath();
-                                c.moveTo(tileX + tw, tileY);
-                                c.lineTo(tileX + tw, tileY + th);
-                                c.lineTo(tileX, tileY + th);
-                                c.fill();
-                            } 
-                            //}
-                        }
+                        } else if(tile.dir == 1) {
+                            c.beginPath();
+                            c.moveTo(tileX, tileY);
+                            c.lineTo(tileX + tw, tileY + th);
+                            c.lineTo(tileX, tileY + th);
+                            c.fill();
+                        } else if(tile.dir == 2) {
+                            c.beginPath();
+                            c.moveTo(tileX, tileY);
+                            c.lineTo(tileX + tw, tileY);
+                            c.lineTo(tileX, tileY + th);
+                            c.fill();
+                        } else if(tile.dir == 3) {
+                            c.beginPath();
+                            c.moveTo(tileX, tileY);
+                            c.lineTo(tileX + tw, tileY);
+                            c.lineTo(tileX + tw, tileY + th);
+                            c.fill();
+                        } else if(tile.dir == 4) {
+                            c.beginPath();
+                            c.moveTo(tileX + tw, tileY);
+                            c.lineTo(tileX + tw, tileY + th);
+                            c.lineTo(tileX, tileY + th);
+                            c.fill();
+                        } 
+                        //}
                     }
-                //}
+                }*/
             }
             
         }
@@ -1291,30 +1423,46 @@
             for(var i = 0; i < a**2; i++){
                 chunks.push(new Chunk(i % a - a / 2, Math.floor(i / a) - a / 2, "#6dd853", 0));
             }
-            fillTris();
+            //fillTris();
             
-            //Create macro map
-            /*scale = 1;
-            resolution = 2;
-            updateVars();
+            //Create macro canvas
             
             macroCanvas = document.createElement('canvas');
-            //macroCanvas.width = a*chunkWidth;
-            //macroCanvas.height = a*chunkHeight;
             macroCanvas.width = w * 2 + edgeMargin * 2;
             macroCanvas.height = h * 2 + edgeMargin * 2;
             mc = macroCanvas.getContext('2d');
-            //drawMap(mc);*/
+            //drawMap(mc);
             
-            //create chunk map
+            //create chunk canvas
             
             chunkCanvas = document.createElement('canvas');
-            //chunkCanvas.width = a*chunkWidth;
-            //chunkCanvas.height = a*chunkHeight;
             chunkCanvas.width = w * 2 + edgeMargin * 2;
             chunkCanvas.height = h * 2 + edgeMargin * 2;
             cc = chunkCanvas.getContext('2d');
             cview = cc;
+            
+            //create temp canvases
+
+            scale = 1;
+            resolution = 2;
+            updateVars();
+            
+            tempMacroCanvas = document.createElement('canvas');
+            tempMacroCanvas.chunkWidth;
+            tempMacroCanvas.chunkHeight;
+            tmc = tempMacroCanvas.getContext('2d');
+            
+            scale = 6;
+            resolution = 1;
+            updateVars();
+
+            tempChunkCanvas = document.createElement('canvas');
+            tempChunkCanvas.chunkWidth;
+            tempChunkCanvas.chunkHeight;
+            tcc = tempChunkCanvas.getContext('2d');
+            
+            
+            
             drawMap(cc);
             
             step();
