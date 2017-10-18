@@ -273,10 +273,14 @@
                 scale = 6;
                 resolution = 1;
                 updateVars();
+                camX = ccOffsetX % w;
+                camY = ccOffsetY % h;
             } else {
                 scale = 1;
                 resolution = 2;
                 updateVars();
+                camX = (ccOffsetX % w) - w;
+                camY = (ccOffsetY % h) - h;
             }
             ccOffsetX = (chunk.x * chunkWidth + (chunkWidth / 2) - w / 2); 
             ccOffsetY = (chunk.y * chunkHeight + (chunkHeight / 2) - h / 2);
