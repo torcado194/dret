@@ -220,6 +220,8 @@
             mouseTileY = 0,
             landmasses = [];
         
+        var updateTime = new Date;
+        
         //test
         var zoom = true;
         
@@ -243,8 +245,8 @@
         function updateMouse(){
             mouseRelX = mouseX + camX;
             mouseRelY = mouseY + camY;
-            mouseTileX = Math.floor(mouseRelX / tileWidth);
-            mouseTileY = Math.floor(mouseRelY / tileHeight);
+            mouseTileX = Math.floor((mouseRelX + ccOffsetX) / tileWidth);
+            mouseTileY = Math.floor((mouseRelY + ccOffsetY) / tileHeight);
         }
         
         function toggleZoom(){
@@ -276,12 +278,11 @@
                 resolution = 2;
                 updateVars();
             }
-            ccOffsetX = Math.floor((chunk.x * chunkWidth + (chunkWidth / 2) - w / 2) / chunkWidth) * chunkWidth;
-            ccOffsetY = Math.floor((chunk.y * chunkHeight + (chunkHeight / 2) - h / 2) / chunkHeight) * chunkHeight;
-            camX = ccOffsetX % w;
-            camY = ccOffsetY % h;
-            updateMouse();
+            ccOffsetX = (chunk.x * chunkWidth + (chunkWidth / 2) - w / 2); 
+            ccOffsetY = (chunk.y * chunkHeight + (chunkHeight / 2) - h / 2);
+            console.log(chunk.x + " : " + camX + " : " + ccOffsetX);
             drawMap(cview, "full", chunk);
+            updateMouse();
         }
         
         function generateChunk(x,y){
@@ -1047,8 +1048,11 @@
             c.drawImage(cview.canvas, 0, 0);
             
             c.strokeStyle = "hsl(328, 100%, 67%)";
-            c.strokeRect(Math.floor((mouseRelX)/(chunkWidth)) * chunkWidth, Math.floor((mouseRelY)/(chunkHeight)) * chunkHeight, chunkWidth, chunkHeight);
-            c.strokeRect(Math.floor((mouseRelX)/(tileWidth)) * tileWidth, Math.floor((mouseRelY)/(tileHeight)) * tileHeight, tileWidth, tileHeight);
+            //c.strokeRect(Math.floor((mouseRelX)/(chunkWidth)) * chunkWidth, Math.floor((mouseRelY)/(chunkHeight)) * chunkHeight, chunkWidth, chunkHeight);
+            //c.strokeRect(Math.floor((mouseRelX)/(tileWidth)) * tileWidth, Math.floor((mouseRelY)/(tileHeight)) * tileHeight, tileWidth, tileHeight);
+            
+            c.strokeRect(mouseTileX * tileWidth - ccOffsetX, mouseTileY * tileHeight - ccOffsetY, tileWidth, tileHeight);
+            c.strokeRect(Math.floor(mouseTileX / chunkC) * chunkWidth - ccOffsetX, Math.floor(mouseTileY / chunkR) * chunkHeight - ccOffsetY, chunkWidth, chunkHeight);
             
             
             c.fillText(getTileAt(mouseTileX, mouseTileY).height, mouseRelX, mouseRelY);
@@ -1157,9 +1161,14 @@
                     drawChunk(c, chunk, vars);
 
                     if(++a < list.length){
-                        requestAnimationFrame(function(){
+                        if((new Date) - updateTime < 15){
                             render(c, a, bounds, vars, list);
-                        })
+                        } else {
+                            updateTime = new Date;
+                            requestAnimationFrame(function(){
+                                render(c, a, bounds, vars, list);
+                            })
+                        }
                     }
                 }
                 
@@ -1264,6 +1273,11 @@
             seed2 = 411;
             seed3 = 1301;
             seed4 = 342;*/
+            
+            seed1 = 510;
+            seed2 = 1375;
+            seed3 = 751;
+            seed4 = 1083;
             
             noise.seed(seed1);
             
