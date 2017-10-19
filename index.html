@@ -292,7 +292,9 @@
             ccOffsetY = (chunk.y * chunkHeight + (chunkHeight / 2) - h / 2);
             console.log(chunk.x + " : " + camX + " : " + ccOffsetX);
             drawMap(cview, "full", chunk);
-            updateMouse();
+            setTimeout(function(){
+                updateMouse();
+            }, 100);
         }
         
         function generateChunk(x,y){
@@ -936,9 +938,33 @@
             var tolerance = 0.2,
                 tiles = [],
                 visited = [],
-                outline = [];
+                outline = [],
+                stack = [{x: x, y: y}];
             //tiles.push(getTileAt(x,y));
             
+            
+            
+            while(stack.length > 0){
+                var item = stack.pop(stack.length),
+                    tile = getTileAt(item.x,item.y),
+                    segment = [],
+                    right = false,
+                    down = false,
+                    left = false,
+                    up = false;
+                if(tiles.includes(tile)) continue;
+                if(tile.height < tolerance) continue;
+                tiles.push(tile);
+                tile.landmass = landmass;
+                stack.push({x: item.x, y: item.y - 1});
+                stack.push({x: item.x - 1, y: item.y});
+                stack.push({x: item.x, y: item.y + 1});
+                stack.push({x: item.x + 1, y: item.y});
+            }
+            
+            return tiles;
+            
+            /*
             function flood(x1,y1){
                 var tile = getTileAt(x1,y1),
                     segment = [],
@@ -988,7 +1014,55 @@
             }
             flood(x,y);
             
-            return [tiles, arrayToPath(outline)]
+            return [tiles, arrayToPath(outline)]*/
+        }
+        
+        function outline(map){
+            var tolerance = 0.2,
+                outline = [];
+            for(var i = 0; i < map.length; i++){
+                //for(var j = 0; j < map[0].length; j++){
+                    var tile = map[i],
+                        segment = [],
+                        right = false,
+                        down = false,
+                        left = false,
+                        up = false;
+                    var tileX = tile.x,
+                        tileY = tile.y;
+                    if(getTileAt(tileX+1,tileY).height < tolerance){
+                        segment.push([tileX+1,tileY]);
+                        segment.push([tileX+1,tileY+1]);
+                        right = true;
+                    }
+                    if(getTileAt(tileX,tileY+1).height < tolerance){
+                        segment.push([tileX+1,tileY+1]);
+                        segment.push([tileX,tileY+1]);
+                        down = true;
+                    }
+                    if(getTileAt(tileX-1,tileY).height < tolerance){
+                        segment.push([tileX,tileY+1]);
+                        segment.push([tileX,tileY]);
+                        left = true;
+                    }
+                    if(getTileAt(tileX,tileY-1).height < tolerance){
+                        if(right){
+                            segment.splice(0,0,[tileX,tileY],[tileX+1,tileY])
+                        } else {
+                            segment.push([tileX,tileY]);
+                            segment.push([tileX+1,tileY]);
+                        }
+                        up = true;
+                    }
+                    if(segment.length > 0){
+                        outline.push(segment);
+                    }
+                    if(segment.length == 4 && ((right == true && down == true) || (down == true && left == true) || (left == true && up == true) || (up == true && right == true))){
+                        segment.splice(1,2);
+                    }
+                //}
+            }
+            return arrayToPath(outline);
         }
         
         function arrayToPath(array){
@@ -1012,7 +1086,8 @@
                         var tile = chunk.map[i][j];
                         if(!tile.landmass && tile.height >= 0.2){
                             var l = new Landmass();
-                            [l.map, l.outline] = floodFill(tile.x,tile.y,l);
+                            l.map = floodFill(tile.x,tile.y,l);
+                            l.outline = outline(l.map);
                             landmasses.push(l);
                         }
                     }
@@ -1195,6 +1270,7 @@
             
             
             c.save();
+            c.setTransform(1, 0, 0, 1, -Math.floor(ccOffsetX + camX), -Math.floor(ccOffsetY + camY));
             c.scale(tileWidth, tileHeight);
             c.lineWidth = 0.5;
             c.strokeStyle = "hsl(48, 100%, 64%)";
@@ -1267,11 +1343,11 @@
                     i = 0;
                 //debugger;
                 while(true){
-                    checkY = Math.floor(((bounds.top + bounds.offsetY) / vars.chunkHeight) + Math.floor(i / Math.ceil(bounds.width / (vars.chunkWidth))));
+                    checkY = Math.floor(((bounds.top + bounds.offsetY) / vars.chunkHeight) + Math.floor(i / (Math.ceil(bounds.width / (vars.chunkWidth)) + 1)));
                     if(checkY > Math.floor((bounds.bottom + bounds.offsetY) / vars.chunkHeight) + 1){
                         break;
                     }
-                    checkX = Math.floor(((bounds.left + bounds.offsetX) / vars.chunkWidth) + (i % Math.ceil(bounds.width / (chunkWidth))));
+                    checkX = Math.floor(((bounds.left + bounds.offsetX) / vars.chunkWidth) + (i % (Math.ceil(bounds.width / (vars.chunkWidth)) + 1)));
                     d = Math.hypot(checkX - startX, checkY - startY);
                     list.push({x:checkX,y:checkY,d:d});
                     i++;
@@ -1486,6 +1562,9 @@
             mouseRelY = mouseY + camY;
             mouseTileX = Math.floor((mouseRelX + ccOffsetX) / tileWidth);
             mouseTileY = Math.floor((mouseRelY + ccOffsetY) / tileHeight);
+            
+            
+            
         }
         
         function mouseDown(e) {
@@ -1495,7 +1574,8 @@
         
         function mouseWheel(e) {
             //floodFill(mouseTileX, mouseTileY)
-            chunkZoom(getChunkAtTile(mouseTileX, mouseTileY), e.deltaY < 0);
+            var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
+            chunkZoom(getChunkAtTile(mouseTileX, mouseTileY), delta > 0);
         }
         
         function keyDown(e) {
