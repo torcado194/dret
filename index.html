@@ -15,9 +15,10 @@
     <head>
         <meta charset="utf-8">
         <title>🇩🇷🇪🇹</title>
-        <script src="/code/jquery.min.js"></script>
-        <script src='/code/jquery-ui.min.js'></script>
-        <script src='/code/perlin.js'></script>
+        <script src="code/jquery.min.js"></script>
+        <script src='code/jquery-ui.min.js'></script>
+        <script src='code/jquery.mousewheel.min.js'></script>
+        <script src='code/perlin.js'></script>
         <link rel="stylesheet" type="text/css" href="/reset.css">
         <!--        <link rel="stylesheet" href="/style.css">-->
         <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,500,700|Roboto+Slab:400,700|Roboto:300,400,500&effect=outline" rel="stylesheet">
@@ -222,9 +223,17 @@
             mouseRelY = 0,
             mouseTileX = 0,
             mouseTileY = 0,
-            landmasses = [];
+            landmasses = [],
+            structures = [];
         
         var updateTime = new Date;
+        
+        var dragStartX = 0,
+            dragStartY = 0,
+            dragStartCamX,
+            dragStartCamY,
+            mouseIsDown = false,
+            dragging = false;
         
         //test
         var zoom = true;
@@ -232,7 +241,33 @@
         //Object Definitions
         function Chunk(x,y,color,dir){this.x = x; this.y = y; this.color = color; this.dir = dir; this.map = createMap(this)};
         function Tile(chunk,x,y,relX,relY,height,biome,bgBiome,color,bgColor,dir){this.chunk = chunk; this.x = x; this.y = y; this.relX = relX; this.relY = relY; this.height = height; this.biome = biome; this.bgBiome = bgBiome; this.color = color; this.bgColor = bgColor; this.dir = dir};
-        function Landmass(x = 0, y = 0, map = [], outline = []){this.x = x; this.y = y; this.map = map; this.outline = outline}; //x,y,map,outline
+        function Landmass(map = [], outline = [], x = 0, y = 0){
+            this.map = map; this.outline = outline; this.x = x; this.y = y;
+            this.getCenter = function(){
+                if(this.center){
+                    return this.center;
+                }
+                var lowerX = this.map[0].x + 999999,
+                    upperX = this.map[0].x - 999999,
+                    lowerY = this.map[0].y + 999999,
+                    upperY = this.map[0].y - 999999;
+                for(var i = 0; i < map.length; i++){
+                    lowerX = Math.min(lowerX, this.map[i].x);
+                    upperX = Math.max(upperX, this.map[i].x);
+                    lowerY = Math.min(lowerY, this.map[i].y);
+                    upperY = Math.max(upperY, this.map[i].y);
+                }
+                return this.center = {x: Math.floor((upperX + lowerX) / 2), y: Math.floor((upperY + lowerY) / 2)};
+            }
+        };
+        function Item(name, desc, icon, recipes = [], ingredientIn = [], foundIn = []){
+            
+        }
+        
+        //resolvables
+        function resolveItem(item){
+            
+        }
         
         //Behavioral Functions
         function updateVars(){
@@ -249,8 +284,8 @@
         function updateMouse(){
             mouseRelX = mouseX + camX;
             mouseRelY = mouseY + camY;
-            mouseTileX = Math.floor((mouseRelX + ccOffsetX) / tileWidth);
-            mouseTileY = Math.floor((mouseRelY + ccOffsetY) / tileHeight);
+            mouseTileX = Math.floor((mouseRelX) / tileWidth);
+            mouseTileY = Math.floor((mouseRelY) / tileHeight);
         }
         
         /*function toggleZoom(){
@@ -277,20 +312,22 @@
                 scale = 6;
                 resolution = 1;
                 updateVars();
-                camX = ccOffsetX % w;
-                camY = ccOffsetY % h;
+                //camX = ccOffsetX % w;
+                //camY = ccOffsetY % h;
                 cview = cc;
             } else {
                 scale = 1;
                 resolution = 2;
                 updateVars();
-                camX = (ccOffsetX % w) - w;
-                camY = (ccOffsetY % h) - h;
+                //camX = (ccOffsetX % w) - w;
+                //camY = (ccOffsetY % h) - h;
                 cview = mc;
             }
             ccOffsetX = (chunk.x * chunkWidth + (chunkWidth / 2) - w / 2); 
             ccOffsetY = (chunk.y * chunkHeight + (chunkHeight / 2) - h / 2);
-            console.log(chunk.x + " : " + camX + " : " + ccOffsetX);
+            camX = ccOffsetX;
+            camY = ccOffsetY;
+            //console.log(chunk.x + " : " + camX + " : " + ccOffsetX);
             drawMap(cview, "full", chunk);
             setTimeout(function(){
                 updateMouse();
@@ -299,6 +336,14 @@
         
         function generateChunk(x,y){
             var chunk = getChunkAt(x,y) || new Chunk(x, y, "#6dd853", 0);
+            chunks.push(chunk);
+            return chunk;
+        }
+        
+        function generateChunkAtTile(x,y){
+            var chunkX = Math.floor(x / chunkC),
+                chunkY = Math.floor(y / chunkR);
+            var chunk = getChunkAt(chunkX,chunkY) || new Chunk(chunkX, chunkY, "#6dd853", 0);
             chunks.push(chunk);
             return chunk;
         }
@@ -569,7 +614,7 @@
             if(biome1 == 3 && biome2 == 2) biome = 7; //desert
             if(biome1 == 3 && biome2 == 3) biome = 8; //meteor
             
-            if(biome == 0 && a < 0.53) biome = 2; //shore lake -> swamp
+            if(biome == 0 && a < 0.45) biome = 2; //shore lake -> swamp
             if(!(biome == 0 || biome == 2 || biome == 7) && a <= 0.366) biome = 7; //shore land -> desert
             if(biome == 8 && a < 0.55) biome = 7; //shore meteor -> desert
             //if(biome == 8 && a > 0.71) biome = 2; //mountain meteor -> lava?
@@ -1220,32 +1265,40 @@
             camXCenter = camX + w / 2;
             camYCenter = camY + h / 2;
             
-            if(camX >= w){
-                camX = 0;
+            if(camX - ccOffsetX > w){
+                //camX = 0;
                 ccOffsetX += w;
-                let cx = Math.floor((ccOffsetX + (w) + (chunkWidth / 2)) / chunkWidth),
-                    cy = Math.floor((ccOffsetY + (camYCenter)) / chunkHeight);
+                /*let cx = Math.floor((ccOffsetX + (w) + (chunkWidth / 2)) / chunkWidth),
+                    cy = Math.floor((ccOffsetY + (camYCenter)) / chunkHeight);*/
+                let cx = Math.floor((camX + w + (chunkWidth / 2)) / chunkWidth),
+                    cy = Math.floor((camYCenter) / chunkHeight);
                 drawMap(cview, "right",  generateChunk(cx, cy));
             }
-            if(camX < 0){
-                camX = w;
+            if(camX - ccOffsetX < 0){
+                //camX = w;
                 ccOffsetX -= w;
-                let cx = Math.floor((ccOffsetX + (w) - (chunkWidth / 2)) / chunkWidth),
-                    cy = Math.floor((ccOffsetY + (camYCenter)) / chunkHeight);
+                /*let cx = Math.floor((ccOffsetX + (w) - (chunkWidth / 2)) / chunkWidth),
+                    cy = Math.floor((ccOffsetY + (camYCenter)) / chunkHeight);*/
+                let cx = Math.floor((camX - (chunkWidth / 2)) / chunkWidth),
+                    cy = Math.floor((camYCenter) / chunkHeight);
                 drawMap(cview, "left",  generateChunk(cx, cy));
             }
-            if(camY >= h){
-                camY = 0;
+            if(camY - ccOffsetY > h){
+                //camY = 0;
                 ccOffsetY += h;
-                let cx = Math.floor((ccOffsetX + (camXCenter)) / chunkWidth),
-                    cy = Math.floor((ccOffsetY + (h) + (chunkHeight / 2)) / chunkHeight);
+                /*let cx = Math.floor((ccOffsetX + (camXCenter)) / chunkWidth),
+                    cy = Math.floor((ccOffsetY + (h) + (chunkHeight / 2)) / chunkHeight);*/
+                let cx = Math.floor((camXCenter) / chunkWidth),
+                    cy = Math.floor((camY + h + (chunkHeight / 2)) / chunkHeight);
                 drawMap(cview, "down", generateChunk(cx, cy));
             }
-            if(camY < 0){
-                camY = h;
+            if(camY - ccOffsetY < 0){
+                //camY = h;
                 ccOffsetY -= h;
-                let cx = Math.floor((ccOffsetX + (camXCenter)) / chunkWidth),
-                    cy = Math.floor((ccOffsetY + (h) - (chunkHeight / 2)) / chunkHeight);
+                /*let cx = Math.floor((ccOffsetX + (camXCenter)) / chunkWidth),
+                    cy = Math.floor((ccOffsetY + (h) - (chunkHeight / 2)) / chunkHeight);*/
+                let cx = Math.floor((camXCenter) / chunkWidth),
+                    cy = Math.floor((camY - (chunkHeight / 2)) / chunkHeight);
                 drawMap(cview, "up",  generateChunk(cx, cy));
             }
         }
@@ -1254,22 +1307,23 @@
         function draw(){
             //var mainCanvas;
             //mainCanvas = zoom ? chunkCanvas : macroCanvas;
-            c.setTransform(1, 0, 0, 1, -Math.floor(camX), -Math.floor(camY));
+            c.setTransform(1, 0, 0, 1, -Math.floor(camX - ccOffsetX), -Math.floor(camY - ccOffsetY));
             c.drawImage(cview.canvas, 0, 0);
+            c.setTransform(1, 0, 0, 1, -Math.floor(camX), -Math.floor(camY));
             
             c.strokeStyle = "hsl(328, 100%, 67%)";
             //c.strokeRect(Math.floor((mouseRelX)/(chunkWidth)) * chunkWidth, Math.floor((mouseRelY)/(chunkHeight)) * chunkHeight, chunkWidth, chunkHeight);
             //c.strokeRect(Math.floor((mouseRelX)/(tileWidth)) * tileWidth, Math.floor((mouseRelY)/(tileHeight)) * tileHeight, tileWidth, tileHeight);
             
-            c.strokeRect(mouseTileX * tileWidth - ccOffsetX, mouseTileY * tileHeight - ccOffsetY, tileWidth, tileHeight);
-            c.strokeRect(Math.floor(mouseTileX / chunkC) * chunkWidth - ccOffsetX, Math.floor(mouseTileY / chunkR) * chunkHeight - ccOffsetY, chunkWidth, chunkHeight);
+            c.strokeRect(mouseTileX * tileWidth, mouseTileY * tileHeight, tileWidth, tileHeight);
+            c.strokeRect(Math.floor(mouseTileX / chunkC) * chunkWidth, Math.floor(mouseTileY / chunkR) * chunkHeight, chunkWidth, chunkHeight);
             
             
             c.fillText(getTileAt(mouseTileX, mouseTileY).height, mouseRelX, mouseRelY);
             c.fillText(mouseTileX + ", " + mouseTileY, mouseRelX, mouseRelY - 20);
             
             
-            c.save();
+            /*c.save();
             c.setTransform(1, 0, 0, 1, -Math.floor(ccOffsetX + camX), -Math.floor(ccOffsetY + camY));
             c.scale(tileWidth, tileHeight);
             c.lineWidth = 0.5;
@@ -1278,7 +1332,7 @@
             for(var i = 0; i < landmasses.length; i++){
                 c.stroke(landmasses[i].outline);
             }
-            c.restore();
+            c.restore();*/
         }
         
         function drawMap(c, area = "full", startChunk = false){
@@ -1307,16 +1361,8 @@
             c.setTransform(1, 0, 0, 1, -bounds.offsetX, -bounds.offsetY);
             
             c.drawImage(canvas, bounds.left, bounds.top, bounds.width, bounds.height, (area == "left" ? w : 0) + bounds.offsetX, (area == "up" ? h : 0) + bounds.offsetY, bounds.width, bounds.height);
-            //mc.fillRect(0, 0, 4 * scale, 4 * scale)
-
-            //if(pressed.includes("ArrowLeft") || pressed.includes("ArrowRight") || pressed.includes("ArrowUp") || pressed.includes("ArrowDown"))
-
             
-            //tileWidth *= resolution;
-            //tileHeight *= resolution;
             
-            //c.fillStyle = "#7FC6FF";
-            //c.fillRect(camXCenter, camYCenter,canvas.width,canvas.height);
             
             var startX = 0,
                 startY = 0;
@@ -1443,6 +1489,73 @@
             
         }
         
+        function generateFill(x,y){
+            var tolerance = 0.2,
+                tiles = [],
+                visited = [],
+                outline = [],
+                stack = [{x: x, y: y}],
+                landmass = new Landmass();
+            //tiles.push(getTileAt(x,y));
+            while(stack.length > 0){
+                var item = stack.pop(stack.length),
+                    segment = [],
+                    right = false,
+                    down = false,
+                    left = false,
+                    up = false;
+                var tile = getTileAt(item.x,item.y, false);
+                
+                if(!tile){
+                    generateChunkAtTile(item.x,item.y);
+                    tile = getTileAt(item.x, item.y, false);
+                    if(!tile) debugger;
+                }
+                
+                if(tiles.includes(tile)) continue;
+                if(tile.height < tolerance) continue;
+                tiles.push(tile);
+                tile.landmass = landmass;
+                stack.push({x: item.x, y: item.y - 1});
+                stack.push({x: item.x - 1, y: item.y});
+                stack.push({x: item.x, y: item.y + 1});
+                stack.push({x: item.x + 1, y: item.y});
+            }
+            //landmasses.push(landmass);
+            return tiles;
+        }
+        
+        function begin(){
+            generateChunk(0,0);
+            var found = false,
+                i = 0,
+                landmass;
+            while(!(found || i > 100)){
+                landmass = generateFill(i,0);
+                found = landmass.length > 2000;
+                i++
+            }
+            console.log(landmass);
+            
+            var l = new Landmass(landmass);
+            
+            /*found = false;
+            var spawnTile;
+            while(!found){
+                spawnTile = landmass[Math.floor(Math.random() * landmass.length)];
+                found = spawnTile.height > 0.48 && spawnTile.height < 0.78 && (spawnTile.biome == 3 || spawnTile.biome == 4);
+            }
+            ccOffsetX = spawnTile.x - (w/2);
+            ccOffsetY = spawnTile.y - (h/2);*/
+            step();
+            ccOffsetX = (l.getCenter().x * tileWidth) - (w/2);
+            ccOffsetY = (l.getCenter().y * tileHeight) - (h/2);
+            camX = ccOffsetX;
+            camY = ccOffsetY;
+            //drawMap(cview, "full", spawnTile.chunk);
+            drawMap(cview, "full", getChunkAtTile(l.getCenter().x, l.getCenter().y));
+        }
+        
         //Initialization
         function init(){
             canvas = document.getElementById("canvas");
@@ -1496,9 +1609,9 @@
             var a = 4;
 
             //Gen map
-            for(var i = 0; i < a**2; i++){
+            /*for(var i = 0; i < a**2; i++){
                 chunks.push(new Chunk(i % a - a / 2, Math.floor(i / a) - a / 2, "#6dd853", 0));
-            }
+            }*/
             //fillTris();
             
             //Create macro canvas
@@ -1519,7 +1632,7 @@
             
             //create temp canvases
 
-            scale = 1;
+            /*scale = 1;
             resolution = 2;
             updateVars();
             
@@ -1535,23 +1648,28 @@
             tempChunkCanvas = document.createElement('canvas');
             tempChunkCanvas.chunkWidth;
             tempChunkCanvas.chunkHeight;
-            tcc = tempChunkCanvas.getContext('2d');
+            tcc = tempChunkCanvas.getContext('2d');*/
             
             
             
-            drawMap(cc);
+            //drawMap(cc);
             
-            step();
+            //step();
+            
+            begin();
+            
         }
         
         init();
         
         
         //Event handlers
-        document.addEventListener("DOMMouseScroll", mouseWheel, false);
-        document.addEventListener("mousewheel", mouseWheel, false);
+        /*document.addEventListener("DOMMouseScroll", mouseWheel, false);
+        document.addEventListener("mousewheel", mouseWheel, false);*/
+        $(document).mousewheel(mouseWheel);
         document.addEventListener("mousemove", mouseMove, false);
         document.addEventListener("mousedown", mouseDown, false);
+        document.addEventListener("mouseup", mouseUp, false);
         document.addEventListener("keydown", keyDown, false);
         document.addEventListener("keyup", keyUp, false);
         
@@ -1560,22 +1678,41 @@
             mouseY = e.clientY - canvasY;
             mouseRelX = mouseX + camX;
             mouseRelY = mouseY + camY;
-            mouseTileX = Math.floor((mouseRelX + ccOffsetX) / tileWidth);
-            mouseTileY = Math.floor((mouseRelY + ccOffsetY) / tileHeight);
-            
-            
-            
+            mouseTileX = Math.floor((mouseRelX) / tileWidth);
+            mouseTileY = Math.floor((mouseRelY) / tileHeight);
+            if(mouseIsDown && Math.abs(e.clientX - dragStartX) > 4 && Math.abs(e.clientY - dragStartY) > 4){
+                dragging = true;
+            }
+            if(dragging){
+                camX = dragStartCamX + (dragStartX - e.clientX);
+                camY = dragStartCamY + (dragStartY - e.clientY);
+            }
         }
         
         function mouseDown(e) {
             //floodFill(mouseTileX, mouseTileY)
             //chunkZoom(getChunkAtTile(mouseTileX, mouseTileY));
+            mouseIsDown = true;
+            if(e.target == $("#canvas")[0]){
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+                dragStartCamX = camX;
+                dragStartCamY = camY;
+            }
+        }
+        
+        function mouseUp(e) {
+            mouseIsDown = false;
+            dragging = false;
+            /*if(e.target == $("#canvas")[0]){
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+            }*/
         }
         
         function mouseWheel(e) {
             //floodFill(mouseTileX, mouseTileY)
-            var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
-            chunkZoom(getChunkAtTile(mouseTileX, mouseTileY), delta > 0);
+            chunkZoom(getChunkAtTile(mouseTileX, mouseTileY), e.deltaY > 0);
         }
         
         function keyDown(e) {
@@ -1598,6 +1735,13 @@
                 target.addClass('wobble');
             },50)
         });
+        
+        
+        
+        //gameplay
+        function updateItem(item, diff){
+            resolve(item);
+        }
         
     </script>
 </html>
